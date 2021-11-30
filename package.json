@@ -1,0 +1,21 @@
+{
+  "name": "prepare-submissions-for-export-service",
+  "version": "0.0.0",
+  "description": "Microservice to prepares submitted submissions for exporting.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lblod/prepare-submissions-for-export-service.git"
+  },
+  "author": "redpencil.io",
+  "license": "MIT",
+  "dependencies": {
+    "@lblod/mu-auth-sudo": "0.2.0",
+    "lodash.flatten": "4.4.0",
+    "fs-extra": "8.1.0",
+    "rdflib": "1.0.6",
+    "body-parser": "1.19.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
