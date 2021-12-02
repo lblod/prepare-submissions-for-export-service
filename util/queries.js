@@ -1,30 +1,43 @@
 import { sparqlEscapeUri } from "mu";
 import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
 
-export async function createSubmissionForQuery(uri) {
+export async function getResourceInfo(uri) {
   const result = await query(`
     PREFIX dct: <http://purl.org/dc/terms/>
 
-    SELECT ?submission ?ttlFileURI ?submittedResourceURI
+    SELECT ?resource ?type
     WHERE {
-        BIND (${sparqlEscapeUri(uri)} as ?submission)
-        ?submission dct:subject ?submittedResourceURI .
-        ?submittedResourceURI dct:source ?ttlFileURI .
-        ?ttlFileURI dct:type <http://data.lblod.gift/concepts/form-data-file-type> .
+        BIND (${sparqlEscapeUri(uri)} as ?resource)
+        ?resource a ?type .
     } LIMIT 1`);
   
-  if (result.results.bindings) {
+  if (result.results.bindings.length) {
     return result.results.bindings[0];
   } else {
-    console.log(`No submission found.`);
+    console.log(`Resource not found.`);
     return null;
   }
 }
 
-export async function getSubmissionInfo(submissionUri) {
+export async function getSubmissionInfo(uri, pathToSubmission) {
   const result = await query(`
     SELECT ?decisionType ?regulationType ?classificationOrgaan ?classificationEenheid {
-      ${sparqlEscapeUri(submissionUri)} <http://www.w3.org/ns/prov#generated> ?form .
+      ${
+        pathToSubmission
+          ? pathToSubmission +
+            " FILTER (?subject = " +
+            sparqlEscapeUri(uri) +
+            ")"
+          : ""
+      }
+
+      ${
+        pathToSubmission
+          ? "?submission <http://www.w3.org/ns/prov#generated> ?form ."
+          : sparqlEscapeUri(uri) +
+            " <http://www.w3.org/ns/prov#generated> ?form ."
+      }
+
       ?form <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType ;
         <http://data.europa.eu/eli/ontology#passed_by> ?orgaanInTijd .
       ?orgaanInTijd <http://data.vlaanderen.be/ns/mandaat#isTijdspecialisatieVan> ?orgaan .
@@ -44,17 +57,17 @@ export async function getSubmissionInfo(submissionUri) {
   }
 }
 
-export async function flagSubmission(submissionUri) {
+export async function flagResource(uri) {
   await update(`
     PREFIX schema: <http://schema.org/>
     INSERT {
       GRAPH ?g {
-        ${sparqlEscapeUri(submissionUri)}
+        ${sparqlEscapeUri(uri)}
           schema:publication <http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325> .
       }
     } WHERE {
       GRAPH ?g {
-        ${sparqlEscapeUri(submissionUri)} ?p ?o .
+        ${sparqlEscapeUri(uri)} ?p ?o .
       }
     }`);
 }

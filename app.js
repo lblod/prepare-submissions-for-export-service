@@ -1,11 +1,8 @@
-import { NamedNode, triple } from "rdflib";
 import bodyParser from "body-parser";
 import { app } from "mu";
 import {
-  createSubmission,
-  SUBMISSION_SENT_STATUS,
-} from "./lib/submission";
-import { ADMS } from "./util/namespaces";
+  createResource,
+} from "./lib/resource";
 import { Delta } from "./lib/delta";
 
 app.use(
@@ -30,39 +27,24 @@ app.post("/delta", async function (req, res) {
     return res.status(204).send();
   }
 
-  const submissions = await processInsertions(delta);
+  const inserts = delta.inserts;
+  const heterogenResources = await Promise.all(inserts.map(entry => createResource(entry.subject.value)));
+  // Resources can be undefined if a resource doen't have a type
+  const resources = heterogenResources.filter(item => item);
 
-  if (!submissions) {
+  if (resources.length == 0) {
     return res.status(204).send();
   } else {
+    const uniqueResources = [...new Set(resources)];
+    processResources(uniqueResources);
     return res.status(200).send();
   }
 });
 
-async function processInsertions(delta) {
-  let submissions = [];
-
-  // get submissions for submission URIs
-  let inserts = delta.getInsertsFor(
-    triple(undefined, ADMS("status"), new NamedNode(SUBMISSION_SENT_STATUS))
-  );
-  for (let triple of inserts) {
-    const submission = await createSubmission(
-      triple.subject.value
-    );
-    if (submission) submissions.push(submission);
-  }
-
-  if (submissions.length) {
-    processSubmissions(submissions); // don't await async processing
-  }
-  return submissions;
-}
-
-async function processSubmissions(submissions) {
-  for (let submission of submissions) {
+async function processResources(resources) {
+  for (let resource of resources) {
     try {
-      await processSubmission(submission);
+      await processResource(resource);
     } catch (e) {
       console.log(
         `Something went wrong while trying to extract the form-data from the submissions`
@@ -72,13 +54,13 @@ async function processSubmissions(submissions) {
   }
 }
 
-async function processSubmission(submission) {
-  const canBeFlaged = await submission.canFlag();
-
-  if (canBeFlaged) {
-    console.log('Flagging the submission to be exported');
-    await submission.flag();
-  } else {
-    console.log('Submission doesnt meet the configuration to be exported');
+async function processResource(resource) {
+  try {
+    if (await resource.canBeExported()) {
+      console.log(`Resource ${resource.uri} can be exported, flagging...`);
+      await resource.flag();
+    }
+  } catch (error) {
+    console.log(error);
   }
 }
