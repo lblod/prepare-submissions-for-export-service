@@ -28,23 +28,24 @@ app.post("/delta", async function (req, res) {
   }
 
   const inserts = delta.inserts;
-  const heterogenResources = await Promise.all(inserts.map(entry => createResource(entry.subject.value)));
-  // Resources can be undefined if a resource doen't have a type
-  const resources = heterogenResources.filter(item => item);
+  const subjects = inserts.map(insert => insert.subject.value);
+  const uniqueSubjects = [...new Set(subjects)];
 
-  if (resources.length == 0) {
+  if (uniqueSubjects.length == 0) {
     return res.status(204).send();
   } else {
-    const uniqueResources = [...new Set(resources)];
-    processResources(uniqueResources);
+    processSubjects(uniqueSubjects);
     return res.status(200).send();
   }
 });
 
-async function processResources(resources) {
-  for (let resource of resources) {
+async function processSubjects(subjects) {
+  for (let subject of subjects) {
     try {
-      await processResource(resource);
+      const resource = await createResource(subject);
+      if (resource) {
+        await processResource(resource);
+      }
     } catch (e) {
       console.log(
         `Something went wrong while trying to extract the form-data from the submissions`
