@@ -13,7 +13,7 @@ app.use(
   bodyParser.json({
     type: function (req) {
       return /^application\/json/.test(req.get("content-type"));
-    },
+    }
   })
 );
 
