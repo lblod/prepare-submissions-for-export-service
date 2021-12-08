@@ -52,7 +52,7 @@ async function processSubjects(subjects) {
       }
     } catch (e) {
       console.log(`Error while processing a subject: ${e.message ? e.message : e}`);
-      sendErrorAlert({
+      await sendErrorAlert({
         message: `Something unexpected went wrong while processing a subject: ${e.message ? e.message : e}`
       });
     }
@@ -69,7 +69,7 @@ async function processResource(resource) {
     }
   } catch (error) {
     console.log(`Error while processing a resource: ${error.message ? error.message : error}`);
-    sendErrorAlert({
+    await sendErrorAlert({
       message: `Something unexpected went wrong while processing a resource: ${error.message ? error.message : error}`
     });
   }
