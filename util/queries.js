@@ -25,38 +25,48 @@ export async function getResourceInfo(uri) {
   }
 }
 
-export async function getSubmissionInfo(uri, pathToSubmission) {
-  let pathToForm = '';
-  if (pathToSubmission) {
-    pathToSubmission = pathToSubmission.replaceAll("?subject", sparqlEscapeUri(uri));
-    pathToForm = '?submission <http://www.w3.org/ns/prov#generated> ?form .';
-  } else {
-    pathToSubmission = '';
-    pathToForm = `${sparqlEscapeUri(uri)} <http://www.w3.org/ns/prov#generated> ?form .`;
+export async function getSubmissionInfo(uri, pathToSubmission, type) {
+  const submissionType = 'http://rdf.myexperiment.org/ontologies/base/Submission';
+
+  let resolvedPathToSubmission = '';
+  let bindSubmission = '';
+
+  if (pathToSubmission && type != submissionType) {
+    resolvedPathToSubmission = pathToSubmission.replaceAll("?subject", sparqlEscapeUri(uri));
+  }
+  else if (type == submissionType) {
+    bindSubmission = `BIND(${sparqlEscapeUri(uri)} as ?submission)`;
+  }
+  else {
+    throw `Unexpected configuration for ${type} and ${uri}!`;
   }
 
+  //TODO: Re-think the black-listing of graphs. The path can cross multiple graphs.
   const result = await query(`
-    SELECT ?decisionType ?regulationType ?classificationOrgaan ?classificationEenheid {
+    SELECT DISTINCT ?submission ?decisionType ?regulationType ?classificationOrgaan ?classificationEenheid {
+      ${bindSubmission}
+
       GRAPH ?g {
-        ${pathToSubmission}
-
-        ${pathToForm}
-
-        ?form <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType ;
-          <http://data.europa.eu/eli/ontology#passed_by> ?orgaanInTijd .
-
-        OPTIONAL {
-          ?form <http://mu.semte.ch/vocabularies/ext/regulationType> ?regulationType .
-        }
+        ${sparqlEscapeUri(uri)} a ${sparqlEscapeUri(type)}.
       }
-      GRAPH ?h {
-        ?orgaanInTijd <http://data.vlaanderen.be/ns/mandaat#isTijdspecialisatieVan> ?orgaan .
-        ?orgaan <http://data.vlaanderen.be/ns/besluit#classificatie> ?classificationOrgaan ;
-          <http://data.vlaanderen.be/ns/besluit#bestuurt> ?eenheid .
-        ?eenheid <http://data.vlaanderen.be/ns/besluit#classificatie> ?classificationEenheid .
+
+      ${resolvedPathToSubmission}
+
+      ?submission <http://www.w3.org/ns/prov#generated> ?form .
+
+      ?form <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType ;
+        <http://data.europa.eu/eli/ontology#passed_by> ?orgaanInTijd .
+
+      OPTIONAL {
+        ?form <http://mu.semte.ch/vocabularies/ext/regulationType> ?regulationType .
       }
+
+      ?orgaanInTijd <http://data.vlaanderen.be/ns/mandaat#isTijdspecialisatieVan> ?orgaan .
+      ?orgaan <http://data.vlaanderen.be/ns/besluit#classificatie> ?classificationOrgaan ;
+        <http://data.vlaanderen.be/ns/besluit#bestuurt> ?eenheid .
+      ?eenheid <http://data.vlaanderen.be/ns/besluit#classificatie> ?classificationEenheid .
+
       FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
-      FILTER(?h NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
     }`);
 
   if (result.results.bindings.length) {
