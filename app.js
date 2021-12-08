@@ -51,7 +51,7 @@ async function processSubjects(subjects) {
         await processResource(resource);
       }
     } catch (e) {
-      console.log(`Error while processing a subject: ${e.message ? e.message : e}`);
+      console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
       await sendErrorAlert({
         message: `Something unexpected went wrong while processing a subject: ${e.message ? e.message : e}`
       });
@@ -68,7 +68,7 @@ async function processResource(resource) {
       console.log(`Resource ${resource.uri} can not be exported according to the configuration.`);
     }
   } catch (error) {
-    console.log(`Error while processing a resource: ${error.message ? error.message : error}`);
+    console.error(`Error while processing a resource: ${error.message ? error.message : error}`);
     await sendErrorAlert({
       message: `Something unexpected went wrong while processing a resource: ${error.message ? error.message : error}`
     });
