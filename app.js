@@ -38,7 +38,7 @@ app.post("/delta", async function (req, res) {
   if (uniqueSubjects.length == 0) {
     return res.status(204).send();
   } else {
-    processSubjectsQueue.addJob(async () => processSubjects(uniqueSubjects));
+    processSubjectsQueue.addJob(() => processSubjects(uniqueSubjects));
     return res.status(200).send();
   }
 });
