@@ -13,6 +13,9 @@ export async function getResourceInfo(uri) {
         BIND (${sparqlEscapeUri(uri)} as ?resource)
         ?resource a ?type .
       }
+      FILTER NOT EXISTS {
+       ?resource <http://schema.org/publication> ?publicationStatus.
+      }
       FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
     }
     LIMIT 1`);
@@ -20,12 +23,49 @@ export async function getResourceInfo(uri) {
   if (result.results.bindings.length) {
     return result.results.bindings;
   } else {
-    console.log(`Resource not found.`);
+    console.log(`Resource ${uri} not found or already published`);
     return null;
   }
 }
 
+export async function getUnpublishedSubjectsFromSubmission(submission, type, pathToSubmission = ''){
+  //TODO:
+  // 1. This is extremely implict: the pathToSubmission expects the name `?subject` as root node, and `?submission` as submission
+  // 2. Re-think the black-listing of graphs.
+  const queryStr = `
+    SELECT DISTINCT ?subject WHERE {
+      BIND(${sparqlEscapeUri(submission)} as ?submission)
+
+      GRAPH ?g {
+        ?subject a ${sparqlEscapeUri(type)}.
+      }
+
+      ${pathToSubmission}
+
+     FILTER NOT EXISTS {
+       ?subject <http://schema.org/publication> ?publicationStatus.
+     }
+
+     FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
+    }
+  `;
+
+  const result = await query(queryStr);
+  if (result.results.bindings.length) {
+    return result.results.bindings.map(r => r.subject.value);
+  }
+  else {
+    console.log(`No unpublished subjects found for ${submission} and ${type}`);
+    return [];
+  }
+}
+
 export async function getSubmissionInfo(uri, pathToSubmission, type) {
+    if(type == 'http://www.w3.org/2004/02/skos/core#Concept'){
+      return null;
+    }
+
+  
   const submissionType = 'http://rdf.myexperiment.org/ontologies/base/Submission';
 
   let resolvedPathToSubmission = '';
@@ -119,6 +159,6 @@ export async function sendErrorAlert({message, detail, reference}) {
   try {
     await update(q);
   } catch (e) {
-    console.warn(`[WARN] Something went wrong while trying to store an error.\nMessage: ${e}\nQuery: ${q}`);
+    console.error(`[WARN] Something went wrong while trying to store an error.\nMessage: ${e}\nQuery: ${q}`);
   }
 }

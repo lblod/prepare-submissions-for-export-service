@@ -5,7 +5,8 @@ import {
 } from "./lib/resource";
 import { Delta } from "./lib/delta";
 import { ProcessingQueue } from './lib/processing-queue';
-import { sendErrorAlert } from "./util/queries";
+import { sendErrorAlert, getUnpublishedSubjectsFromSubmission } from "./util/queries";
+import jsonExportConfig from "/config/export.json";
 
 const processSubjectsQueue = new ProcessingQueue('file-sync-queue');
 
@@ -51,7 +52,7 @@ async function processSubjects(subjects) {
         await processResource(resource);
       }
     } catch (e) {
-      console.log(`Error while processing a subject: ${e.message ? e.message : e}`);
+      console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
       await sendErrorAlert({
         message: `Something unexpected went wrong while processing a subject: ${e.message ? e.message : e}`
       });
@@ -64,13 +65,35 @@ async function processResource(resource) {
     if (await resource.canBeExported()) {
       console.log(`Resource ${resource.uri} can be exported, flagging...`);
       await resource.flag();
+
+      //Resource has been flag, we've found the submission, let's see if there is nothing else that can be exported
+//      if(resource.uri != resource.linkedSubmission){
+        await scheduleRemainingResources(resource.linkedSubmission);
+  //    }
+
     } else {
       console.log(`Resource ${resource.uri} can not be exported according to the configuration.`);
     }
   } catch (error) {
-    console.log(`Error while processing a resource: ${error.message ? error.message : error}`);
+    console.error(`Error while processing a resource: ${error.message ? error.message : error}`);
     await sendErrorAlert({
       message: `Something unexpected went wrong while processing a resource: ${error.message ? error.message : error}`
     });
   }
+}
+
+async function scheduleRemainingResources(submission){
+  let unpublishedSubjects = [];
+  for(const config of jsonExportConfig.export){
+    if(config.type == 'http://rdf.myexperiment.org/ontologies/base/Submission'){
+      continue;
+    }
+    if(config.type == 'http://www.w3.org/2004/02/skos/core#Concept'){
+      continue;
+    }
+    const subjects = await getUnpublishedSubjectsFromSubmission(submission, config.type, config.pathToSubmission);
+    unpublishedSubjects = [ ...unpublishedSubjects, ...subjects];
+  }
+  unpublishedSubjects = [... new Set(unpublishedSubjects)];
+  await processSubjects(unpublishedSubjects); //This ends eventually
 }
