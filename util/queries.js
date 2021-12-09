@@ -109,6 +109,6 @@ export async function sendErrorAlert({message, detail, reference}) {
   try {
     await update(q);
   } catch (e) {
-    console.warn(`[WARN] Something went wrong while trying to store an error.\nMessage: ${e}\nQuery: ${q}`);
+    console.error(`[WARN] Something went wrong while trying to store an error.\nMessage: ${e}\nQuery: ${q}`);
   }
 }
