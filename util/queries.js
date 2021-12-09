@@ -30,12 +30,20 @@ export async function getResourceInfo(uri) {
 }
 
 export async function getUnpublishedSubjectsFromSubmission(submission, type, pathToSubmission = '') {
-  //TODO:
+  // TODO:
   // 1. This is extremely implict: the pathToSubmission expects the name `?subject` as root node, and `?submission` as submission
   // 2. Re-think the black-listing of graphs.
+  let bindSubmission = '';
+  if (pathToSubmission.length) {
+    bindSubmission = `BIND(${sparqlEscapeUri(submission)} as ?submission)`;
+  } else {
+    // Implicit: if there is no pathToSubmission, we can assume that the subject is the submission
+    bindSubmission = `BIND(${sparqlEscapeUri(submission)} as ?subject)`;
+  }
+
   const queryStr = `
     SELECT DISTINCT ?subject WHERE {
-      BIND(${sparqlEscapeUri(submission)} as ?submission)
+      ${bindSubmission}
 
       GRAPH ?g {
         ?subject a ${sparqlEscapeUri(type)}.
@@ -61,12 +69,11 @@ export async function getUnpublishedSubjectsFromSubmission(submission, type, pat
   }
 }
 
-export async function getSubmissionInfo(uri, pathToSubmission, type) {
-    if(type == 'http://www.w3.org/2004/02/skos/core#Concept'){
-      return null;
-    }
+export async function getSubmissionInfo(uri, pathToSubmission, type, submission) {
+  if (!submission && (type == 'http://www.w3.org/2004/02/skos/core#Concept')) {
+    return null;
+  }
 
-  
   const submissionType = 'http://rdf.myexperiment.org/ontologies/base/Submission';
 
   let resolvedPathToSubmission = '';
@@ -74,6 +81,9 @@ export async function getSubmissionInfo(uri, pathToSubmission, type) {
 
   if (pathToSubmission && type != submissionType) {
     resolvedPathToSubmission = pathToSubmission.replaceAll("?subject", sparqlEscapeUri(uri));
+  }
+  else if (submission) {
+    bindSubmission = `BIND(${sparqlEscapeUri(submission)} as ?submission)`;
   }
   else if (type == submissionType) {
     bindSubmission = `BIND(${sparqlEscapeUri(uri)} as ?submission)`;

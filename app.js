@@ -44,12 +44,12 @@ app.post("/delta", async function (req, res) {
   }
 });
 
-async function processSubjects(subjects) {
+async function processSubjects(subjects, submission=null) {
   for (let subject of subjects) {
     try {
       const resource = await createResource(subject);
       if (resource) {
-        await processResource(resource);
+        await processResource(resource, submission);
       }
     } catch (e) {
       console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
@@ -60,9 +60,9 @@ async function processSubjects(subjects) {
   }
 }
 
-async function processResource(resource) {
+async function processResource(resource, submission) {
   try {
-    if (await resource.canBeExported()) {
+    if (await resource.canBeExported(submission)) {
       console.log(`Resource ${resource.uri} can be exported, flagging...`);
       await resource.flag();
 
@@ -82,15 +82,9 @@ async function processResource(resource) {
 async function scheduleRemainingResources(submission){
   let unpublishedSubjects = [];
   for (const config of jsonExportConfig.export) {
-    if (config.type == 'http://rdf.myexperiment.org/ontologies/base/Submission') {
-      continue;
-    }
-    if (config.type == 'http://www.w3.org/2004/02/skos/core#Concept') {
-      continue;
-    }
     const subjects = await getUnpublishedSubjectsFromSubmission(submission, config.type, config.pathToSubmission);
     unpublishedSubjects = [ ...unpublishedSubjects, ...subjects];
   }
   unpublishedSubjects = [... new Set(unpublishedSubjects)];
-  await processSubjects(unpublishedSubjects); //This ends eventually
+  await processSubjects(unpublishedSubjects, submission); //This ends eventually
 }
