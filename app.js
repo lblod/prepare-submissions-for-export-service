@@ -67,10 +67,7 @@ async function processResource(resource) {
       await resource.flag();
 
       //Resource has been flag, we've found the submission, let's see if there is nothing else that can be exported
-//      if(resource.uri != resource.linkedSubmission){
-        await scheduleRemainingResources(resource.linkedSubmission);
-  //    }
-
+      await scheduleRemainingResources(resource.linkedSubmission);
     } else {
       console.log(`Resource ${resource.uri} can not be exported according to the configuration.`);
     }
@@ -84,11 +81,11 @@ async function processResource(resource) {
 
 async function scheduleRemainingResources(submission){
   let unpublishedSubjects = [];
-  for(const config of jsonExportConfig.export){
-    if(config.type == 'http://rdf.myexperiment.org/ontologies/base/Submission'){
+  for (const config of jsonExportConfig.export) {
+    if (config.type == 'http://rdf.myexperiment.org/ontologies/base/Submission') {
       continue;
     }
-    if(config.type == 'http://www.w3.org/2004/02/skos/core#Concept'){
+    if (config.type == 'http://www.w3.org/2004/02/skos/core#Concept') {
       continue;
     }
     const subjects = await getUnpublishedSubjectsFromSubmission(submission, config.type, config.pathToSubmission);

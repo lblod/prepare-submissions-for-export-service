@@ -2,6 +2,7 @@ import { uuid, sparqlEscapeString, sparqlEscapeUri, sparqlEscapeDateTime } from 
 import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
 
 const CREATOR = 'http://lblod.data.gift/services/prepare-submissions-for-export-service';
+const PUBLIC_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325';
 
 export async function getResourceInfo(uri) {
   const result = await query(`
@@ -14,7 +15,7 @@ export async function getResourceInfo(uri) {
         ?resource a ?type .
       }
       FILTER NOT EXISTS {
-       ?resource <http://schema.org/publication> ?publicationStatus.
+        ?resource <http://schema.org/publication> ${sparqlEscapeUri(PUBLIC_DECISIONS_PUBLICATION_CONCEPT)}.
       }
       FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
     }
@@ -28,7 +29,7 @@ export async function getResourceInfo(uri) {
   }
 }
 
-export async function getUnpublishedSubjectsFromSubmission(submission, type, pathToSubmission = ''){
+export async function getUnpublishedSubjectsFromSubmission(submission, type, pathToSubmission = '') {
   //TODO:
   // 1. This is extremely implict: the pathToSubmission expects the name `?subject` as root node, and `?submission` as submission
   // 2. Re-think the black-listing of graphs.
@@ -42,11 +43,11 @@ export async function getUnpublishedSubjectsFromSubmission(submission, type, pat
 
       ${pathToSubmission}
 
-     FILTER NOT EXISTS {
-       ?subject <http://schema.org/publication> ?publicationStatus.
-     }
+      FILTER NOT EXISTS {
+        ?subject <http://schema.org/publication> ${sparqlEscapeUri(PUBLIC_DECISIONS_PUBLICATION_CONCEPT)}.
+      }
 
-     FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
+      FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
     }
   `;
 
