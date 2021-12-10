@@ -19,7 +19,7 @@ export async function getResourceInfo(uri) {
       }
       FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
     }
-    LIMIT 1`);
+  `);
 
   if (result.results.bindings.length) {
     return result.results.bindings;
