@@ -5,7 +5,8 @@ import {
 } from "./lib/resource";
 import { Delta } from "./lib/delta";
 import { ProcessingQueue } from './lib/processing-queue';
-import { sendErrorAlert } from "./util/queries";
+import { sendErrorAlert, getUnpublishedSubjectsFromSubmission } from "./util/queries";
+import jsonExportConfig from "/config/export.json";
 
 const processSubjectsQueue = new ProcessingQueue('file-sync-queue');
 
@@ -43,12 +44,12 @@ app.post("/delta", async function (req, res) {
   }
 });
 
-async function processSubjects(subjects) {
+async function processSubjects(subjects, submission=null) {
   for (let subject of subjects) {
     try {
       const resource = await createResource(subject);
       if (resource) {
-        await processResource(resource);
+        await processResource(resource, submission);
       }
     } catch (e) {
       console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
@@ -59,11 +60,14 @@ async function processSubjects(subjects) {
   }
 }
 
-async function processResource(resource) {
+async function processResource(resource, submission) {
   try {
-    if (await resource.canBeExported()) {
+    if (await resource.canBeExported(submission)) {
       console.log(`Resource ${resource.uri} can be exported, flagging...`);
       await resource.flag();
+
+      //Resource has been flag, we've found the submission, let's see if there is nothing else that can be exported
+      await scheduleRemainingResources(resource.linkedSubmission);
     } else {
       console.log(`Resource ${resource.uri} can not be exported according to the configuration.`);
     }
@@ -73,4 +77,14 @@ async function processResource(resource) {
       message: `Something unexpected went wrong while processing a resource: ${error.message ? error.message : error}`
     });
   }
+}
+
+async function scheduleRemainingResources(submission){
+  let unpublishedSubjects = [];
+  for (const config of jsonExportConfig.export) {
+    const subjects = await getUnpublishedSubjectsFromSubmission(submission, config.type, config.pathToSubmission);
+    unpublishedSubjects = [ ...unpublishedSubjects, ...subjects];
+  }
+  unpublishedSubjects = [... new Set(unpublishedSubjects)];
+  await processSubjects(unpublishedSubjects, submission); //This ends eventually
 }
