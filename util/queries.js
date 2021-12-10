@@ -83,7 +83,7 @@ export async function getSubmissionInfo(uri, pathToSubmission, type, submission 
     }
 
     else if(pathToSubmission){
-      resolvedPathToSubmission = pathToSubmission.replaceAll("?subject", sparqlEscapeUri(uri));
+      resolvedPathToSubmission = pathToSubmission.replace(/\?subject/g, sparqlEscapeUri(uri));
       bindSubmission = `BIND(${sparqlEscapeUri(submission)} as ?submission)`;
     }
 
@@ -97,7 +97,7 @@ export async function getSubmissionInfo(uri, pathToSubmission, type, submission 
   }
 
   else if(pathToSubmission){
-    resolvedPathToSubmission = pathToSubmission.replaceAll("?subject", sparqlEscapeUri(uri));
+    resolvedPathToSubmission = pathToSubmission.replace(/\?subject/g, sparqlEscapeUri(uri));
   }
 
   else {
