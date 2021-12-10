@@ -15,7 +15,9 @@ export async function getResourceInfo(uri) {
         ?resource a ?type .
       }
       FILTER NOT EXISTS {
-        ?resource <http://schema.org/publication> ${sparqlEscapeUri(PUBLIC_DECISIONS_PUBLICATION_CONCEPT)}.
+        GRAPH ?g {
+          ?resource <http://schema.org/publication> ${sparqlEscapeUri(PUBLIC_DECISIONS_PUBLICATION_CONCEPT)}.
+        }
       }
       FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
     }
