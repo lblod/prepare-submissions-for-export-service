@@ -116,6 +116,7 @@ export async function getSubmissionInfo(uri, pathToSubmission, type, submission 
       ${resolvedPathToSubmission}
 
       ?submission <http://www.w3.org/ns/prov#generated> ?form .
+      ?submission <http://www.w3.org/ns/adms#status> <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c>.
 
       ?form <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType ;
         <http://data.europa.eu/eli/ontology#passed_by> ?orgaanInTijd .
