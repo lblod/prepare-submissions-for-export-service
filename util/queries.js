@@ -176,7 +176,7 @@ export async function sendErrorAlert({message, detail, reference}) {
                     dct:created ${sparqlEscapeDateTime(new Date().toISOString())} ;
                     dct:creator ${sparqlEscapeUri(CREATOR)} .
             ${reference ? `${sparqlEscapeUri(uri)} dct:references ${sparqlEscapeUri(reference)} .` : ''}
-            ${detail ? `${sparqlEscapeUri(uri)} oslc:largePreview ""${sparqlEscapeString(detail)}"" .` : ''}
+            ${detail ? `${sparqlEscapeUri(uri)} oslc:largePreview ${sparqlEscapeString(detail)} .` : ''}
         }
       }
   `;
