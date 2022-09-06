@@ -147,7 +147,7 @@ export async function flagResource(uri) {
     INSERT {
       GRAPH ?g {
         ${sparqlEscapeUri(uri)}
-          schema:publication <http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325> .
+          schema:publication ${sparqlEscapeUri(PUBLICATION_CONCEPT)} .
       }
     } WHERE {
       GRAPH ?g {
