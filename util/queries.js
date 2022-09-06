@@ -1,8 +1,8 @@
 import { uuid, sparqlEscapeString, sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
 import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
+import { PUBLICATION_CONCEPT } from "../config";
 
 const CREATOR = 'http://lblod.data.gift/services/prepare-submissions-for-export-service';
-const PUBLIC_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325';
 
 export async function getResourceInfo(uri) {
   const result = await query(`
@@ -16,7 +16,7 @@ export async function getResourceInfo(uri) {
       }
       FILTER NOT EXISTS {
         GRAPH ?g {
-          ?resource <http://schema.org/publication> ${sparqlEscapeUri(PUBLIC_DECISIONS_PUBLICATION_CONCEPT)}.
+          ?resource <http://schema.org/publication> ${sparqlEscapeUri(PUBLICATION_CONCEPT)}.
         }
       }
       FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
@@ -54,7 +54,7 @@ export async function getUnpublishedSubjectsFromSubmission(submission, type, pat
       ${pathToSubmission}
 
       FILTER NOT EXISTS {
-        ?subject <http://schema.org/publication> ${sparqlEscapeUri(PUBLIC_DECISIONS_PUBLICATION_CONCEPT)}.
+        ?subject <http://schema.org/publication> ${sparqlEscapeUri(PUBLICATION_CONCEPT)}.
       }
 
       FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
