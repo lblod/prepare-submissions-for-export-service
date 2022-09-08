@@ -202,7 +202,7 @@ for(const bsRule of besluitenlijstRules) {
           ?bestuursorgaan besluit:classificatie ${sparqlEscapeUri(bsRule.orgaan)};
             besluit:bestuurt ?eenheid.
 
-          ?eenheid besluit:classificatie ${sparqlEscapeUri(bsRule.eenheid)};
+          ?eenheid besluit:classificatie ${sparqlEscapeUri(bsRule.eenheid)}.
 
           ?submission a meb:Submission;
             prov:generated ?formData;
@@ -217,7 +217,7 @@ for(const bsRule of besluitenlijstRules) {
              ?eenheid besluit:classificatie ?classificatie.
           }
         }
-        LIMIT 1
+        LIMIT 1g
        `,
       'publicationFlag': FLAG_FOR_PUBLIC
     }
