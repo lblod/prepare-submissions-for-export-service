@@ -71,42 +71,19 @@ export async function getUnpublishedSubjectsFromSubmission(submission, type, pat
   }
 }
 
-export async function getSubmissionInfo(uri, pathToSubmission, type, submission = null) {
+export async function getSubmissionInfo(uri, pathToSubmission, type) {
   let resolvedPathToSubmission = '';
   let bindSubmission = '';
 
-  //TODO: this is kind of specific logic which should made more explicit from the config.
-  if(type == 'http://www.w3.org/2004/02/skos/core#Concept'){
-    if(!submission){
-      console.log(`No submissionURI provided for ${type} and ${uri}, doing nothig`);
-      return null;
-    }
-
-    else if(pathToSubmission){
-      resolvedPathToSubmission = pathToSubmission.replace(/\?subject/g, sparqlEscapeUri(uri));
-      bindSubmission = `BIND(${sparqlEscapeUri(submission)} as ?submission)`;
-    }
-
-    else {
-      throw `Unexpected configuration for ${type} and ${uri}!`;
-    }
-  }
-
-  else if(type == 'http://rdf.myexperiment.org/ontologies/base/Submission'){
-    bindSubmission = `BIND(${sparqlEscapeUri(uri)} as ?submission)`;
-  }
-
-  else if(pathToSubmission){
+  if (pathToSubmission){
     resolvedPathToSubmission = pathToSubmission.replace(/\?subject/g, sparqlEscapeUri(uri));
-  }
-
-  else {
+  } else {
     throw `Unexpected configuration for ${type} and ${uri}!`;
   }
 
   //TODO: Re-think the black-listing of graphs. The path can cross multiple graphs.
   const result = await query(`
-    SELECT DISTINCT ?submission ?decisionType ?regulationType ?classificationOrgaan ?classificationEenheid {
+    SELECT DISTINCT ?submission ?decisionType ?regulationType ?classificationOrgaan ?classificationEenheid ?formData {
       ${bindSubmission}
 
       GRAPH ?g {
@@ -115,14 +92,14 @@ export async function getSubmissionInfo(uri, pathToSubmission, type, submission 
 
       ${resolvedPathToSubmission}
 
-      ?submission <http://www.w3.org/ns/prov#generated> ?form .
+      ?submission <http://www.w3.org/ns/prov#generated> ?formData .
       ?submission <http://www.w3.org/ns/adms#status> <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c>.
 
-      ?form <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType ;
+      ?formData <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType ;
         <http://data.europa.eu/eli/ontology#passed_by> ?orgaanInTijd .
 
       OPTIONAL {
-        ?form <http://mu.semte.ch/vocabularies/ext/regulationType> ?regulationType .
+        ?formData <http://mu.semte.ch/vocabularies/ext/regulationType> ?regulationType .
       }
 
       ?orgaanInTijd <http://data.vlaanderen.be/ns/mandaat#isTijdspecialisatieVan> ?orgaan .

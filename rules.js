@@ -1,5 +1,5 @@
-import { uuid, sparqlEscapeString, sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
-import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
+import { sparqlEscapeUri } from "mu";
+
 const PREFIXES = `
   PREFIX dct: <http://purl.org/dc/terms/>
   PREFIX melding: <http://lblod.data.gift/vocabularies/automatische-melding/>
@@ -16,9 +16,10 @@ const PREFIXES = `
 const STATUS_SENT = 'http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c';
 const FLAG_FOR_WORSHIP = 'http://lblod.data.gift/concepts/403b71bd-5ab9-4c92-8990-4bb19d5469d1';
 const FLAG_FOR_PUBLIC = 'http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325';
+
 const rules = [];
 
-const sameRuleDocTypePublicDecision = [
+const decisionTypes = [
   "https://data.vlaanderen.be/id/concept/BesluitType/a0a709a7-ac07-4457-8d40-de4aea9b1432",
   "https://data.vlaanderen.be/id/concept/BesluitType/8bdc614a-d2f2-44c0-8cb1-447b1017d312",
   "https://data.vlaanderen.be/id/concept/BesluitType/e44c535d-4339-4d15-bdbf-d4be6046de2c",
@@ -36,19 +37,19 @@ const sameRuleDocTypePublicDecision = [
   "https://data.vlaanderen.be/id/concept/BesluitType/849c66c2-ba33-4ac1-a693-be48d8ac7bc7"
 ];
 
-for(const docType of sameRuleDocTypePublicDecision) {
+for (const decisionType of decisionTypes) {
   rules.push(
     {
-      'documentType': docType,
-      //TODO: figure whether we need the filter not exists, worst case it adds the flag again?
+      'documentType': decisionType,
       'matchQuery': (formData, documentType) => `
         ${PREFIXES}
 
-        SELECT DISTINCT ?submission {
-         BIND(${sparqlEscapeUri(formData)} as ?formData)
+        SELECT DISTINCT ?submission
+        WHERE {
+          BIND(${sparqlEscapeUri(formData)} as ?formData)
 
-         ?formData a melding:FormData;
-           dct:type ${sparqlEscapeUri(documentType)}.
+          ?formData a melding:FormData;
+            dct:type ${sparqlEscapeUri(documentType)}.
 
           ?submission a meb:Submission;
             prov:generated ?formData;
@@ -56,21 +57,21 @@ for(const docType of sameRuleDocTypePublicDecision) {
             pav:createdBy ?eenheid.
 
           FILTER NOT EXISTS {
-             VALUES ?classificatie {
-               <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/66ec74fd-8cfc-4e16-99c6-350b35012e86>
-               <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/f9cac08a-13c1-49da-9bcb-f650b0604054>
-             }
-             ?eenheid besluit:classificatie ?classificatie.
+            VALUES ?classificatie {
+              <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/66ec74fd-8cfc-4e16-99c6-350b35012e86>
+              <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/f9cac08a-13c1-49da-9bcb-f650b0604054>
+            }
+            ?eenheid besluit:classificatie ?classificatie.
           }
         }
         LIMIT 1
-       `,
+      `,
       'publicationFlag': FLAG_FOR_PUBLIC
     }
   );
 }
 
-const reglementenRules = [
+const regulationTypes = [
     "https://data.vlaanderen.be/id/concept/BesluitType/4d8f678a-6fa4-4d5f-a2a1-80974e43bf34",
     "https://data.vlaanderen.be/id/concept/BesluitType/7d95fd2e-3cc9-4a4c-a58e-0fbc408c2f9b",
     "https://data.vlaanderen.be/id/concept/BesluitType/3bba9f10-faff-49a6-acaa-85af7f2199a3",
@@ -89,20 +90,20 @@ const reglementenRules = [
     "https://data.vlaanderen.be/id/concept/BesluitType/256bd04a-b74b-4f2a-8f5d-14dda4765af9"
 ];
 
-for(const regType of reglementenRules) {
+for (const regulationType of regulationTypes) {
   rules.push(
     {
       'documentType': 'https://data.vlaanderen.be/id/concept/BesluitType/67378dd0-5413-474b-8996-d992ef81637a',
-      //TODO: figure whether we need the filter not exists, worst case it adds the flag again?
       'matchQuery': (formData, documentType) => `
         ${PREFIXES}
 
-        SELECT DISTINCT ?submission {
-         BIND(${sparqlEscapeUri(formData)} as ?formData)
+        SELECT DISTINCT ?submission
+        WHERE {
+          BIND(${sparqlEscapeUri(formData)} as ?formData)
 
-         ?formData a melding:FormData;
-           dct:type ${sparqlEscapeUri(documentType)};
-           dct:type ${sparqlEscapeUri(regType)}.
+          ?formData a melding:FormData;
+            dct:type ${sparqlEscapeUri(documentType)};
+            dct:type ${sparqlEscapeUri(regulationType)}.
 
           ?submission a meb:Submission;
             prov:generated ?formData;
@@ -110,21 +111,21 @@ for(const regType of reglementenRules) {
             pav:createdBy ?eenheid.
 
           FILTER NOT EXISTS {
-             VALUES ?classificatie {
-               <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/66ec74fd-8cfc-4e16-99c6-350b35012e86>
-               <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/f9cac08a-13c1-49da-9bcb-f650b0604054>
-             }
-             ?eenheid besluit:classificatie ?classificatie.
+            VALUES ?classificatie {
+              <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/66ec74fd-8cfc-4e16-99c6-350b35012e86>
+              <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/f9cac08a-13c1-49da-9bcb-f650b0604054>
+            }
+            ?eenheid besluit:classificatie ?classificatie.
           }
         }
         LIMIT 1
-       `,
+      `,
       'publicationFlag': FLAG_FOR_PUBLIC
     }
   );
 }
 
-const besluitenlijstRules = [
+const decisionListOptions = [
     {
       "orgaan": "http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/5ab0e9b8a3b2ca7c5e000005",
       "eenheid": "http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000001"
@@ -183,26 +184,26 @@ const besluitenlijstRules = [
     }
   ];
 
-for(const bsRule of besluitenlijstRules) {
+for (const decisionListOption of decisionListOptions) {
   rules.push(
     {
       'documentType': 'https://data.vlaanderen.be/id/concept/BesluitDocumentType/3fa67785-ffdc-4b30-8880-2b99d97b4dee',
-      //TODO: figure whether we need the filter not exists, worst case it adds the flag again?
       'matchQuery': (formData, documentType) => `
         ${PREFIXES}
 
-        SELECT DISTINCT ?submission {
-         BIND(${sparqlEscapeUri(formData)} as ?formData)
+        SELECT DISTINCT ?submission
+        WHERE {
+          BIND(${sparqlEscapeUri(formData)} as ?formData)
 
-         ?formData a melding:FormData;
-           dct:type ${sparqlEscapeUri(documentType)};
-           eli:passed_by ?bestuursorgaanInTijd.
+          ?formData a melding:FormData;
+            dct:type ${sparqlEscapeUri(documentType)};
+            eli:passed_by ?bestuursorgaanInTijd.
 
           ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan.
-          ?bestuursorgaan besluit:classificatie ${sparqlEscapeUri(bsRule.orgaan)};
+          ?bestuursorgaan besluit:classificatie ${sparqlEscapeUri(decisionListOption.orgaan)};
             besluit:bestuurt ?eenheid.
 
-          ?eenheid besluit:classificatie ${sparqlEscapeUri(bsRule.eenheid)}.
+          ?eenheid besluit:classificatie ${sparqlEscapeUri(decisionListOption.eenheid)}.
 
           ?submission a meb:Submission;
             prov:generated ?formData;
@@ -210,15 +211,15 @@ for(const bsRule of besluitenlijstRules) {
             pav:createdBy ?eenheid.
 
           FILTER NOT EXISTS {
-             VALUES ?classificatie {
-               <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/66ec74fd-8cfc-4e16-99c6-350b35012e86>
-               <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/f9cac08a-13c1-49da-9bcb-f650b0604054>
-             }
-             ?eenheid besluit:classificatie ?classificatie.
+            VALUES ?classificatie {
+              <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/66ec74fd-8cfc-4e16-99c6-350b35012e86>
+              <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/f9cac08a-13c1-49da-9bcb-f650b0604054>
+            }
+            ?eenheid besluit:classificatie ?classificatie.
           }
         }
-        LIMIT 1g
-       `,
+        LIMIT 1
+      `,
       'publicationFlag': FLAG_FOR_PUBLIC
     }
   );

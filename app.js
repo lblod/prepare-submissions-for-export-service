@@ -1,14 +1,14 @@
 import bodyParser from "body-parser";
 import { app } from "mu";
-import {
-  createResource,
-} from "./lib/resource";
 import { Delta } from "./lib/delta";
 import { ProcessingQueue } from './lib/processing-queue';
-import { sendErrorAlert, getUnpublishedSubjectsFromSubmission } from "./util/queries";
+import { sendErrorAlert, getUnpublishedSubjectsFromSubmission, getSubmissionInfo, flagResource } from "./util/queries";
 import jsonExportConfig from "/config/export.json";
+import rules from "./rules.js";
 
 const processSubjectsQueue = new ProcessingQueue('file-sync-queue');
+
+const FORM_DATA_TYPE = "http://lblod.data.gift/vocabularies/automatische-melding/FormData";
 
 app.use(
   bodyParser.json({
@@ -44,12 +44,13 @@ app.post("/delta", async function (req, res) {
   }
 });
 
-async function processSubjects(subjects, submission=null) {
+async function processSubjects(subjects) {
   for (let subject of subjects) {
     try {
-      const resource = await createResource(subject);
-      if (resource) {
-        await processResource(resource, submission);
+      const submissionInfo = await getSubmission(subject);
+
+      if (submissionInfo) {
+        await processSubmission(submissionInfo);
       }
     } catch (e) {
       console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
@@ -60,16 +61,46 @@ async function processSubjects(subjects, submission=null) {
   }
 }
 
-async function processResource(resource, submission) {
-  try {
-    if (await resource.canBeExported(submission)) {
-      console.log(`Resource ${resource.uri} can be exported, flagging...`);
-      await resource.flag();
+async function getSubmission(subject) {
+  const formDataConfiguration = jsonExportConfig.export.find(
+    (config) => config.type == FORM_DATA_TYPE
+  );
 
-      //Resource has been flag, we've found the submission, let's see if there is nothing else that can be exported
-      await scheduleRemainingResources(resource.linkedSubmission);
+  if (formDataConfiguration) {
+    return await getSubmissionInfo(
+      subject,
+      formDataConfiguration.pathToSubmission,
+      formDataConfiguration.type,
+    );
+  } else {
+    console.log(`No configuration found for required type ${FORM_DATA_TYPE}.`);
+    return null;
+  }
+}
+
+async function processSubmission(submissionInfo) {
+  try {
+    const exportingRules = getExportingRules(submissionInfo);
+    const matchingRule = await getMatchingRule(submissionInfo, exportingRules);
+
+    if (matchingRule) {
+      // Get all related ressources to the submission from the export config
+      let unexportedRelatedSubjects = [submissionInfo.submission.value];
+      for (const config of jsonExportConfig.export) {
+        const subjects = await getUnpublishedSubjectsFromSubmission(
+          submissionInfo.submission.value,
+          config.type,
+          config.pathToSubmission
+        );
+        unexportedRelatedSubjects = [ ...unexportedRelatedSubjects, ...subjects];
+      }
+
+      // Flag every resource found
+      for (const subject of unexportedRelatedSubjects) {
+        await flagResource(subject);
+      }
     } else {
-      console.log(`Resource ${resource.uri} can not be exported according to the configuration.`);
+      console.log(`Resource ${submissionInfo.submission.value} can not be exported according to the rules defined.`);
     }
   } catch (error) {
     console.error(`Error while processing a resource: ${error.message ? error.message : error}`);
@@ -79,12 +110,17 @@ async function processResource(resource, submission) {
   }
 }
 
-async function scheduleRemainingResources(submission){
-  let unpublishedSubjects = [];
-  for (const config of jsonExportConfig.export) {
-    const subjects = await getUnpublishedSubjectsFromSubmission(submission, config.type, config.pathToSubmission);
-    unpublishedSubjects = [ ...unpublishedSubjects, ...subjects];
+function getExportingRules(submissionInfo) {
+  return rules.filter(rule => rule.documentType == submissionInfo.decisionType.value);
+}
+
+async function getMatchingRule(submissionInfo, exportingRules) {
+  for (const rule of exportingRules) {
+    const isMatching = await rule.matchQuery(submissionInfo.formData.value, submissionInfo.decisionType.value);
+    if (isMatching) {
+      return rule;
+    }
   }
-  unpublishedSubjects = [... new Set(unpublishedSubjects)];
-  await processSubjects(unpublishedSubjects, submission); //This ends eventually
+
+  return null;
 }
