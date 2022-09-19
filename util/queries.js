@@ -4,33 +4,6 @@ import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
 const CREATOR = 'http://lblod.data.gift/services/prepare-submissions-for-export-service';
 const PUBLIC_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325';
 
-export async function getResourceInfo(uri) {
-  const result = await query(`
-    PREFIX dct: <http://purl.org/dc/terms/>
-
-    SELECT ?resource ?type
-    WHERE {
-      GRAPH ?g {
-        BIND (${sparqlEscapeUri(uri)} as ?resource)
-        ?resource a ?type .
-      }
-      FILTER NOT EXISTS {
-        GRAPH ?g {
-          ?resource <http://schema.org/publication> ${sparqlEscapeUri(PUBLIC_DECISIONS_PUBLICATION_CONCEPT)}.
-        }
-      }
-      FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
-    }
-  `);
-
-  if (result.results.bindings.length) {
-    return result.results.bindings;
-  } else {
-    console.log(`Resource ${uri} not found or already published`);
-    return null;
-  }
-}
-
 export async function getUnpublishedSubjectsFromSubmission(submission, type, pathToSubmission) {
   // TODO:
   // 1. This is extremely implict: the pathToSubmission expects the name `?subject` as root node, and `?submission` as submission

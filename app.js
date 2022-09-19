@@ -2,7 +2,12 @@ import bodyParser from "body-parser";
 import { app } from "mu";
 import { Delta } from "./lib/delta";
 import { ProcessingQueue } from './lib/processing-queue';
-import { sendErrorAlert, getUnpublishedSubjectsFromSubmission, getSubmissionInfo, flagResource } from "./util/queries";
+import {
+  sendErrorAlert,
+  getUnpublishedSubjectsFromSubmission,
+  getSubmissionInfo,
+  flagResource
+} from "./util/queries";
 import jsonExportConfig from "/config/export.json";
 import rules from "./rules.js";
 

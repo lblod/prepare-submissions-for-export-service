@@ -225,4 +225,50 @@ for (const decisionListOption of decisionListOptions) {
   );
 }
 
+const worshipDecisionTypes = [
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/8e791b27-7600-4577-b24e-c7c29e0eb773",
+  "https://data.vlaanderen.be/id/concept/BesluitType/e44c535d-4339-4d15-bdbf-d4be6046de2c",
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/672bf096-dccd-40af-ab60-bd7de15cc461",
+  "https://data.vlaanderen.be/id/concept/BesluitType/79414af4-4f57-4ca3-aaa4-f8f1e015e71c",
+  "https://data.vlaanderen.be/id/concept/BesluitType/54b61cbd-349f-41c4-9c8a-7e8e67d08347",
+  "https://data.vlaanderen.be/id/concept/BesluitType/40831a2c-771d-4b41-9720-0399998f1873",
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/18833df2-8c9e-4edd-87fd-b5c252337349",
+  "https://data.vlaanderen.be/id/concept/BesluitType/df261490-cc74-4f80-b783-41c35e720b46",
+  "https://data.vlaanderen.be/id/concept/BesluitType/f56c645d-b8e1-4066-813d-e213f5bc529f",
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/2c9ada23-1229-4c7e-a53e-acddc9014e4e",
+  "https://data.vlaanderen.be/id/concept/BesluitType/3fcf7dba-2e5b-4955-a489-6dd8285c013b"
+];
+
+for (const worshipDecisionType of worshipDecisionTypes) {
+  rules.push(
+    {
+      'documentType': worshipDecisionType,
+      'matchQuery': (formData, documentType) => `
+        ${PREFIXES}
+
+        SELECT DISTINCT ?submission
+        WHERE {
+          BIND(${sparqlEscapeUri(formData)} as ?formData)
+          VALUES ?classificatie {
+            <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/66ec74fd-8cfc-4e16-99c6-350b35012e86>
+            <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/f9cac08a-13c1-49da-9bcb-f650b0604054>
+          }
+
+          ?formData a melding:FormData;
+            dct:type ${sparqlEscapeUri(documentType)}.
+
+          ?submission a meb:Submission;
+            prov:generated ?formData;
+            adms:status ${sparqlEscapeUri(STATUS_SENT)};
+            pav:createdBy ?eenheid.
+
+          ?eenheid besluit:classificatie ?classificatie.
+        }
+        LIMIT 1
+      `,
+      'publicationFlag': FLAG_FOR_WORSHIP
+    }
+  );
+}
+
 export default rules;
