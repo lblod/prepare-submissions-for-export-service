@@ -102,7 +102,8 @@ async function processSubmission(submissionInfo) {
 
       // Flag every resource found
       for (const subject of unexportedRelatedSubjects) {
-        await flagResource(subject);
+        console.log(`Resource ${subject} can be exported, flagging...`);
+        await flagResource(subject, matchingRule.publicationFlag);
       }
     } else {
       console.log(`Resource ${submissionInfo.submission.value} can not be exported according to the rules defined.`);

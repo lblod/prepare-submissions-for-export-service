@@ -3,6 +3,7 @@ import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
 
 const CREATOR = 'http://lblod.data.gift/services/prepare-submissions-for-export-service';
 const PUBLIC_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325';
+const WORSHIP_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/403b71bd-5ab9-4c92-8990-4bb19d5469d1';
 
 export async function getUnpublishedSubjectsFromSubmission(submission, type, pathToSubmission) {
   // TODO:
@@ -28,6 +29,7 @@ export async function getUnpublishedSubjectsFromSubmission(submission, type, pat
 
       FILTER NOT EXISTS {
         ?subject <http://schema.org/publication> ${sparqlEscapeUri(PUBLIC_DECISIONS_PUBLICATION_CONCEPT)}.
+        ?subject <http://schema.org/publication> ${sparqlEscapeUri(WORSHIP_DECISIONS_PUBLICATION_CONCEPT)}.
       }
 
       FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
@@ -91,13 +93,13 @@ export async function getSubmissionInfo(uri, pathToSubmission, type) {
   }
 }
 
-export async function flagResource(uri) {
+export async function flagResource(uri, flag) {
   await update(`
     PREFIX schema: <http://schema.org/>
     INSERT {
       GRAPH ?g {
         ${sparqlEscapeUri(uri)}
-          schema:publication <http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325> .
+          schema:publication ${sparqlEscapeUri(flag)} .
       }
     } WHERE {
       GRAPH ?g {
