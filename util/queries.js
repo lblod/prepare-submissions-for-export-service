@@ -5,45 +5,20 @@ const CREATOR = 'http://lblod.data.gift/services/prepare-submissions-for-export-
 const PUBLIC_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325';
 const WORSHIP_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/403b71bd-5ab9-4c92-8990-4bb19d5469d1';
 
-export async function getUnpublishedSubjectsFromSubmission(submission, type, pathToSubmission) {
   // TODO:
-  // 1. This is extremely implict: the pathToSubmission expects the name `?subject` as root node, and `?submission` as submission
   // 2. Re-think the black-listing of graphs.
-  if(type == 'http://rdf.myexperiment.org/ontologies/base/Submission'){
-    console.log(`Encountered ${type} for ${submission}, we don't need to fetch this.`);
-    console.log(`Either it was already published, or it will be through a subsequent incoming delta`);
-    return [];
-  }
-
-  const bindSubmission = `BIND(${sparqlEscapeUri(submission)} as ?submission)`;
-
   const queryStr = `
     SELECT DISTINCT ?subject WHERE {
-      ${bindSubmission}
 
       GRAPH ?g {
-        ?subject a ${sparqlEscapeUri(type)}.
       }
 
       ${pathToSubmission}
 
-      FILTER NOT EXISTS {
-        ?subject <http://schema.org/publication> ${sparqlEscapeUri(PUBLIC_DECISIONS_PUBLICATION_CONCEPT)}.
-        ?subject <http://schema.org/publication> ${sparqlEscapeUri(WORSHIP_DECISIONS_PUBLICATION_CONCEPT)}.
-      }
-
-      FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
     }
   `;
 
   const result = await query(queryStr);
-  if (result.results.bindings.length) {
-    return result.results.bindings.map(r => r.subject.value);
-  }
-  else {
-    console.log(`No unpublished subjects found for ${submission} and ${type}`);
-    return [];
-  }
 }
 
 export async function getSubmissionInfoForFormData(formData) {
