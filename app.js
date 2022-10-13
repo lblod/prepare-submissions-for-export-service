@@ -63,7 +63,7 @@ async function processSubject(subject) {
 }
 
 async function getSubmission(subject) {
-  const formDataConfiguration = jsonExportConfig.export.find(
+  const formDataConfiguration = exportConfig.find(
     (config) => config.type == FORM_DATA_TYPE
   );
 
