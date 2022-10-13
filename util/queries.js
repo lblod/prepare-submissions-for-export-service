@@ -93,19 +93,25 @@ export async function getSubmissionInfo(uri, pathToSubmission, type) {
   }
 }
 
-export async function flagResource(uri, flag) {
+export async function flagResource(uri, flags) {
+  const preparedStatement = flags
+        .map(flag => `${sparqlEscapeUri(uri)} schema:publication ${sparqlEscapeUri(flag)}. `);
   await update(`
     PREFIX schema: <http://schema.org/>
     INSERT {
       GRAPH ?g {
-        ${sparqlEscapeUri(uri)}
-          schema:publication ${sparqlEscapeUri(flag)} .
+        ${preparedStatement.join('\n')}
       }
     } WHERE {
       GRAPH ?g {
-        ${sparqlEscapeUri(uri)} ?p ?o .
+        ${sparqlEscapeUri(uri)} a ?something .
       }
-      FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
+
+      FILTER(?g NOT IN (
+        <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+        <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+        )
+      )
     }`);
 }
 
