@@ -1,5 +1,20 @@
 import { sparqlEscapeUri } from "mu";
 
+/*
+ * This file exports a list of rule objects, which helps with evaluating
+ *  whether a submission should be flagged for export or not.
+ *
+ *  The structure of the rule (TODO: which might be worth a class) looks like:
+ *   {
+ *     documentType: 'http://uri/of/the/type/of/document' => Used to prefilter the rule, so we don't oveload the db.
+ *     matchQuery: formData => { return queryString } => Query representing the rule for a documentype;
+                                                      it returns the submission uri if the rule is matched
+ *     publicationFlag: 'http://uri/representing/the/flag/to/be/used/for/export'
+ *   }
+ *
+ *  The bulk of this file is boilerplate to generate instances of these rules.
+ */
+
 const PREFIXES = `
   PREFIX dct: <http://purl.org/dc/terms/>
   PREFIX melding: <http://lblod.data.gift/vocabularies/automatische-melding/>
@@ -41,7 +56,7 @@ for (const decisionType of decisionTypes) {
   rules.push(
     {
       'documentType': decisionType,
-      'matchQuery': (formData, documentType) => `
+      'matchQuery': formData => `
         ${PREFIXES}
 
         SELECT DISTINCT ?submission
@@ -49,7 +64,7 @@ for (const decisionType of decisionTypes) {
           BIND(${sparqlEscapeUri(formData)} as ?formData)
 
           ?formData a melding:FormData;
-            dct:type ${sparqlEscapeUri(documentType)}.
+            dct:type ${sparqlEscapeUri(decisionType)}.
 
           ?submission a meb:Submission;
             prov:generated ?formData;
@@ -91,10 +106,11 @@ const regulationTypes = [
 ];
 
 for (const regulationType of regulationTypes) {
+  const documentType = 'https://data.vlaanderen.be/id/concept/BesluitType/67378dd0-5413-474b-8996-d992ef81637a';
   rules.push(
     {
-      'documentType': 'https://data.vlaanderen.be/id/concept/BesluitType/67378dd0-5413-474b-8996-d992ef81637a',
-      'matchQuery': (formData, documentType) => `
+      'documentType': documentType,
+      'matchQuery': formData => `
         ${PREFIXES}
 
         SELECT DISTINCT ?submission
@@ -185,10 +201,11 @@ const decisionListOptions = [
   ];
 
 for (const decisionListOption of decisionListOptions) {
+  const documentType = 'https://data.vlaanderen.be/id/concept/BesluitDocumentType/3fa67785-ffdc-4b30-8880-2b99d97b4dee';
   rules.push(
     {
-      'documentType': 'https://data.vlaanderen.be/id/concept/BesluitDocumentType/3fa67785-ffdc-4b30-8880-2b99d97b4dee',
-      'matchQuery': (formData, documentType) => `
+      'documentType': documentType,
+      'matchQuery': formData => `
         ${PREFIXES}
 
         SELECT DISTINCT ?submission
@@ -243,7 +260,7 @@ for (const worshipDecisionType of worshipDecisionTypes) {
   rules.push(
     {
       'documentType': worshipDecisionType,
-      'matchQuery': (formData, documentType) => `
+      'matchQuery': formData => `
         ${PREFIXES}
 
         SELECT DISTINCT ?submission
@@ -255,7 +272,7 @@ for (const worshipDecisionType of worshipDecisionTypes) {
           }
 
           ?formData a melding:FormData;
-            dct:type ${sparqlEscapeUri(documentType)}.
+            dct:type ${sparqlEscapeUri(worshipDecisionType)}.
 
           ?submission a meb:Submission;
             prov:generated ?formData;
