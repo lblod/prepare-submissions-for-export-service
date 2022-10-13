@@ -62,23 +62,6 @@ async function processSubject(subject) {
   }
 }
 
-async function getSubmission(subject) {
-  const formDataConfiguration = exportConfig.find(
-    (config) => config.type == FORM_DATA_TYPE
-  );
-
-  if (formDataConfiguration) {
-    return await getSubmissionInfo(
-      subject,
-      formDataConfiguration.pathToSubmission,
-      formDataConfiguration.type,
-    );
-  } else {
-    console.log(`No configuration found for required type ${FORM_DATA_TYPE}.`);
-    return null;
-  }
-}
-
 async function processSubmission(submissionInfo) {
   try {
     const exportingRules = getExportingRules(submissionInfo);
