@@ -5,20 +5,30 @@ const CREATOR = 'http://lblod.data.gift/services/prepare-submissions-for-export-
 const PUBLIC_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325';
 const WORSHIP_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/403b71bd-5ab9-4c92-8990-4bb19d5469d1';
 
+export async function getRelatedSubjectsForSubmission(submission, subjectType, pathToSubmission) {
   // TODO:
+  // 1. Note: the pathToSubmission expects the name `?subject` as root node, and `?submission` as submission (see exportConfig.js)
   // 2. Re-think the black-listing of graphs.
   const queryStr = `
     SELECT DISTINCT ?subject WHERE {
+      BIND(${sparqlEscapeUri(submission)} as ?submission)
 
       GRAPH ?g {
+        ?subject a ${sparqlEscapeUri(subjectType)}.
       }
 
       ${pathToSubmission}
 
+      FILTER(?g NOT IN (
+        <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+        <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+        )
+      )
     }
   `;
 
   const result = await query(queryStr);
+  return result.results.bindings.map(r => r.subject.value);
 }
 
 export async function getSubmissionInfoForFormData(formData) {
