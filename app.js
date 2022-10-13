@@ -12,10 +12,7 @@ import {
 import exportConfig from "./exportConfig";
 import rules from "./rules.js";
 
-
 const processSubjectsQueue = new ProcessingQueue('file-sync-queue');
-
-const FORM_DATA_TYPE = "http://lblod.data.gift/vocabularies/automatische-melding/FormData";
 
 app.use(
   bodyParser.json({
@@ -56,7 +53,6 @@ async function processSubject(subject) {
     if (submissionInfo) {
       await processSubmission(submissionInfo);
     }
-    //TODO: remote urls ready when cached
 
   } catch (e) {
     console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
