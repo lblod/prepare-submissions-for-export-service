@@ -43,7 +43,7 @@ export async function getSubmissionInfoForFormData(formData) {
             ext:formSubmissionStatus <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c>;
             <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType.
 
-          ?submission <http://www.w3.org/ns/prov#generated> formData;
+          ?submission <http://www.w3.org/ns/prov#generated> ?formData;
             a <http://rdf.myexperiment.org/ontologies/base/Submission>.
         }
 
