@@ -116,13 +116,13 @@ function getExportingRules(submissionInfo) {
   return rules.filter(rule => rule.documentType == submissionInfo.decisionType.value);
 }
 
-async function getMatchingRule(submissionInfo, exportingRules) {
+async function getMatchingRules(submissionInfo, exportingRules) {
+  const rules = [];
   for (const rule of exportingRules) {
-    const isMatching = await rule.matchQuery(submissionInfo.formData.value, submissionInfo.decisionType.value);
-    if (isMatching) {
-      return rule;
+    const result = await querySudo(rule.matchQuery(submissionInfo.formData.value));
+    if (result.results.bindings.length) {
+      return rules.push(rule);
     }
   }
-
-  return null;
+  return rules;
 }
