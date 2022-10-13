@@ -1,15 +1,17 @@
 import bodyParser from "body-parser";
 import { app } from "mu";
+import { querySudo } from "@lblod/mu-auth-sudo";
 import { Delta } from "./lib/delta";
 import { ProcessingQueue } from './lib/processing-queue';
 import {
   sendErrorAlert,
-  getUnpublishedSubjectsFromSubmission,
-  getSubmissionInfo,
+  getRelatedSubjectsForSubmission,
+  getSubmissionInfoForFormData,
   flagResource
 } from "./util/queries";
-import jsonExportConfig from "/config/export.json";
+import exportConfig from "./exportConfig";
 import rules from "./rules.js";
+
 
 const processSubjectsQueue = new ProcessingQueue('file-sync-queue');
 
@@ -39,7 +41,7 @@ app.post("/delta", async function (req, res) {
 
   const inserts = delta.inserts;
   const subjects = inserts.map(insert => insert.subject.value);
-  const uniqueSubjects = [...new Set(subjects)];
+  const uniqueSubjects = [ ...new Set(subjects) ];
 
   for(const subject of uniqueSubjects) {
     processSubjectsQueue.addJob(() => processSubject(subject));
@@ -49,11 +51,13 @@ app.post("/delta", async function (req, res) {
 
 async function processSubject(subject) {
   try {
-    const submissionInfo = await getSubmission(subject);
+    const submissionInfo = await getSubmissionInfoForFormData(subject);
 
     if (submissionInfo) {
       await processSubmission(submissionInfo);
     }
+    //TODO: remote urls ready when cached
+
   } catch (e) {
     console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
     await sendErrorAlert({
@@ -81,7 +85,6 @@ async function processSubmission(submissionInfo) {
         );
         unexportedRelatedSubjects = [ ...unexportedRelatedSubjects, ...subjects ];
       }
-
       // Flag every resource found
       for (const subject of unexportedRelatedSubjects) {
         console.log(`Resource ${subject} can be exported, flagging...`);
