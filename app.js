@@ -116,13 +116,31 @@ function getExportingRules(submissionInfo) {
   return rules.filter(rule => rule.documentType == submissionInfo.decisionType.value);
 }
 
-async function getMatchingRules(submissionInfo, exportingRules) {
-  const rules = [];
-  for (const rule of exportingRules) {
-    const result = await querySudo(rule.matchQuery(submissionInfo.formData.value));
-    if (result.results.bindings.length) {
-      return rules.push(rule);
+async function getPublicationFlags(submissionInfo, exportingRules) {
+  // A submission can match multiple rules and may have multiple publication flags.
+  // But once a type of publication flag has been matched for a rule, we don't need to check further for this flag.
+  // This leaves room for performance tweaks (stop querying the DB earlier), hence the boilerplate.
+  const groupedRules = exportingRules.reduce((acc, rule) => {
+    if(acc[rule.publicationFlag]) {
+      acc[rule.publicationFlag].push(rule);
+    }
+    else {
+      acc[rule.publicationFlag] = [ rule ];
+    }
+    return acc;
+  }, {});
+
+  const publicationFlags = [];
+
+  for(const flag of Object.keys(groupedRules)) {
+    for(const rule of groupedRules[flag]) {
+      const result = await querySudo(rule.matchQuery(submissionInfo.formData.value));
+      if(result.results.bindings.length) {
+        publicationFlags.push(flag);
+        break;
+      }
     }
   }
-  return rules;
+
+  return publicationFlags;
 }
