@@ -41,28 +41,24 @@ app.post("/delta", async function (req, res) {
   const subjects = inserts.map(insert => insert.subject.value);
   const uniqueSubjects = [...new Set(subjects)];
 
-  if (uniqueSubjects.length == 0) {
-    return res.status(204).send();
-  } else {
-    processSubjectsQueue.addJob(() => processSubjects(uniqueSubjects));
-    return res.status(200).send();
+  for(const subject of uniqueSubjects) {
+    processSubjectsQueue.addJob(() => processSubject(subject));
   }
+  return res.status(200).send();
 });
 
-async function processSubjects(subjects) {
-  for (let subject of subjects) {
-    try {
-      const submissionInfo = await getSubmission(subject);
+async function processSubject(subject) {
+  try {
+    const submissionInfo = await getSubmission(subject);
 
-      if (submissionInfo) {
-        await processSubmission(submissionInfo);
-      }
-    } catch (e) {
-      console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
-      await sendErrorAlert({
-        message: `Something unexpected went wrong while processing a subject: ${e.message ? e.message : e}`
-      });
+    if (submissionInfo) {
+      await processSubmission(submissionInfo);
     }
+  } catch (e) {
+    console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
+    await sendErrorAlert({
+      message: `Something unexpected went wrong while processing a subject: ${e.message ? e.message : e}`
+    });
   }
 }
 
