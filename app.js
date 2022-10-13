@@ -65,27 +65,28 @@ async function processSubject(subject) {
 async function processSubmission(submissionInfo) {
   try {
     const exportingRules = getExportingRules(submissionInfo);
-    const matchingRule = await getMatchingRule(submissionInfo, exportingRules);
+    const publicationFlags = await getPublicationFlags(submissionInfo, exportingRules);
 
-    if (matchingRule) {
-      // Get all related ressources to the submission from the export config
-      let unexportedRelatedSubjects = [submissionInfo.submission.value];
-      for (const config of jsonExportConfig.export) {
-        const subjects = await getUnpublishedSubjectsFromSubmission(
+    if(publicationFlags.length) {
+      //start the export (i.e. flagging) submission and related resources
+      let unexportedRelatedSubjects = [ submissionInfo.submission.value ];
+
+      // Note: the reason why we have to flag all related resources is because the
+      // publication graph maintainer is currently too stupid to do this.
+      for (const config of exportConfig) {
+        const subjects = await getRelatedSubjectsForSubmission(
           submissionInfo.submission.value,
           config.type,
           config.pathToSubmission
         );
-        unexportedRelatedSubjects = [ ...unexportedRelatedSubjects, ...subjects];
+        unexportedRelatedSubjects = [ ...unexportedRelatedSubjects, ...subjects ];
       }
 
       // Flag every resource found
       for (const subject of unexportedRelatedSubjects) {
         console.log(`Resource ${subject} can be exported, flagging...`);
-        await flagResource(subject, matchingRule.publicationFlag);
+        await flagResource(subject, publicationFlags);
       }
-    } else {
-      console.log(`Resource ${submissionInfo.submission.value} can not be exported according to the rules defined.`);
     }
   } catch (error) {
     console.error(`Error while processing a resource: ${error.message ? error.message : error}`);
