@@ -2,8 +2,6 @@ import { uuid, sparqlEscapeString, sparqlEscapeUri, sparqlEscapeDateTime } from 
 import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
 
 const CREATOR = 'http://lblod.data.gift/services/prepare-submissions-for-export-service';
-const PUBLIC_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325';
-const WORSHIP_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/403b71bd-5ab9-4c92-8990-4bb19d5469d1';
 
 export async function getRelatedSubjectsForSubmission(submission, subjectType, pathToSubmission) {
   // TODO:
@@ -67,6 +65,7 @@ export async function getSubmissionInfoForFormData(formData) {
 export async function flagResource(uri, flags) {
   const preparedStatement = flags
         .map(flag => `${sparqlEscapeUri(uri)} schema:publication ${sparqlEscapeUri(flag)}. `);
+
   await update(`
     PREFIX schema: <http://schema.org/>
     INSERT {
