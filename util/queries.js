@@ -46,11 +46,29 @@ export async function getUnpublishedSubjectsFromSubmission(submission, type, pat
   }
 }
 
+export async function getSubmissionInfoForFormData(formData) {
+  //TODO: Re-think the black-listing of graphs.
   const result = await query(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
+    SELECT DISTINCT ?submission ?decisionType ?formData
+      WHERE {
+        BIND(${sparqlEscapeUri(formData)} as ?formData)
 
+        GRAPH ?g {
+          ?formData a <http://lblod.data.gift/vocabularies/automatische-melding/FormData>;
+            ext:formSubmissionStatus <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c>;
+            <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType.
 
+          ?submission <http://www.w3.org/ns/prov#generated> formData;
+            a <http://rdf.myexperiment.org/ontologies/base/Submission>.
+        }
 
+        FILTER(?g NOT IN (
+          <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+          <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+          )
+        )
     }`);
 
   if (result.results.bindings.length) {
