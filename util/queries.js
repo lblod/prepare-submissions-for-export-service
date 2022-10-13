@@ -46,43 +46,11 @@ export async function getUnpublishedSubjectsFromSubmission(submission, type, pat
   }
 }
 
-export async function getSubmissionInfo(uri, pathToSubmission, type) {
-  let resolvedPathToSubmission = '';
-  let bindSubmission = '';
-
-  if (pathToSubmission){
-    resolvedPathToSubmission = pathToSubmission.replace(/\?subject/g, sparqlEscapeUri(uri));
-  } else {
-    throw `Unexpected configuration for ${type} and ${uri}!`;
-  }
-
-  //TODO: Re-think the black-listing of graphs. The path can cross multiple graphs.
   const result = await query(`
-    SELECT DISTINCT ?submission ?decisionType ?regulationType ?classificationOrgaan ?classificationEenheid ?formData {
-      ${bindSubmission}
 
-      GRAPH ?g {
-        ${sparqlEscapeUri(uri)} a ${sparqlEscapeUri(type)}.
-      }
 
-      ${resolvedPathToSubmission}
 
-      ?submission <http://www.w3.org/ns/prov#generated> ?formData .
-      ?submission <http://www.w3.org/ns/adms#status> <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c>.
 
-      ?formData <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType ;
-        <http://data.europa.eu/eli/ontology#passed_by> ?orgaanInTijd .
-
-      OPTIONAL {
-        ?formData <http://mu.semte.ch/vocabularies/ext/regulationType> ?regulationType .
-      }
-
-      ?orgaanInTijd <http://data.vlaanderen.be/ns/mandaat#isTijdspecialisatieVan> ?orgaan .
-      ?orgaan <http://data.vlaanderen.be/ns/besluit#classificatie> ?classificationOrgaan ;
-        <http://data.vlaanderen.be/ns/besluit#bestuurt> ?eenheid .
-      ?eenheid <http://data.vlaanderen.be/ns/besluit#classificatie> ?classificationEenheid .
-
-      FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
     }`);
 
   if (result.results.bindings.length) {
