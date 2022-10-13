@@ -18,7 +18,7 @@ import { sparqlEscapeUri } from "mu";
 const PREFIXES = `
   PREFIX dct: <http://purl.org/dc/terms/>
   PREFIX melding: <http://lblod.data.gift/vocabularies/automatische-melding/>
-  PREFIX dct: <http://purl.org/dc/terms/type>
+  PREFIX dct: <http://purl.org/dc/terms/>
   PREFIX meb: <http://rdf.myexperiment.org/ontologies/base/>
   PREFIX prov: <http://www.w3.org/ns/prov#>
   PREFIX adms: <http://www.w3.org/ns/adms#>
@@ -47,7 +47,6 @@ const decisionTypes = [
   "https://data.vlaanderen.be/id/concept/BesluitType/f8c070bd-96e4-43a1-8c6e-532bcd771251",
   "https://data.vlaanderen.be/id/concept/BesluitType/fb21d14b-734b-48f4-bd4e-888163fd08e8",
   "https://data.vlaanderen.be/id/concept/BesluitType/c945b531-4742-43fe-af55-b13da6ecc6fe",
-  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/3fa67785-ffdc-4b30-8880-2b99d97b4dee",
   "https://data.vlaanderen.be/id/concept/BesluitType/c417f3da-a3bd-47c5-84bf-29007323a362",
   "https://data.vlaanderen.be/id/concept/BesluitType/849c66c2-ba33-4ac1-a693-be48d8ac7bc7"
 ];
