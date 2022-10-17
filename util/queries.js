@@ -75,6 +75,7 @@ export async function getSubmissionInforForRemoteDataObject(remoteDataObject) {
 
         ?remoteDataObject a <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject>;
           <http://www.w3.org/ns/adms#status> <http://lblod.data.gift/file-download-statuses/success>.
+        ?pFile <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#dataSource> ?remoteDataObject.
 
         GRAPH ?g {
           ?formData a <http://lblod.data.gift/vocabularies/automatische-melding/FormData>;
@@ -88,6 +89,10 @@ export async function getSubmissionInforForRemoteDataObject(remoteDataObject) {
             a <http://rdf.myexperiment.org/ontologies/base/Submission>.
 
           ?submission schema:publication ?flag.
+        }
+
+        FILTER NOT EXISTS {
+          ?pFile schema:publication ?flag.
         }
 
         FILTER(?g NOT IN (
@@ -120,6 +125,10 @@ export async function flagResource(uri, flags) {
     } WHERE {
       GRAPH ?g {
         ${sparqlEscapeUri(uri)} a ?something .
+      }
+
+      FILTER NOT EXISTS {
+        ${preparedStatement.join('\n')}
       }
 
       FILTER(?g NOT IN (
