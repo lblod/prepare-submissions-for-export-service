@@ -62,6 +62,51 @@ export async function getSubmissionInfoForFormData(formData) {
   }
 }
 
+export async function getSubmissionInforForRemoteDataObject(remoteDataObject) {
+  //TODO: Re-think the black-listing of graphs.
+  //TODO: it seems user-entered remoteDataobjects are stored in public-graph still
+  const result = await query(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX schema: <http://schema.org/>
+
+    SELECT DISTINCT ?submission ?decisionType ?formData
+      WHERE {
+        BIND(${sparqlEscapeUri(remoteDataObject)} as ?remoteDataObject)
+
+        ?remoteDataObject a <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject>;
+          <http://www.w3.org/ns/adms#status> <http://lblod.data.gift/file-download-statuses/success>.
+
+        GRAPH ?g {
+          ?formData a <http://lblod.data.gift/vocabularies/automatische-melding/FormData>;
+            ext:formSubmissionStatus <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c>;
+            <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType.
+
+          ?formData <http://purl.org/dc/terms/hasPart> ?remoteDataObject.
+
+          ?submission a <http://rdf.myexperiment.org/ontologies/base/Submission>.
+          ?submission <http://www.w3.org/ns/prov#generated> ?formData;
+            a <http://rdf.myexperiment.org/ontologies/base/Submission>.
+
+          ?submission schema:publication ?flag.
+        }
+
+        FILTER(?g NOT IN (
+          <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+          <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+          )
+        )
+    }`);
+
+  if (result.results.bindings.length) {
+    console.log(`Found late RemoteDataObject coming in later ${remoteDataObject}`);
+    return result.results.bindings[0];
+  } else {
+    console.log(`Submission info not found.`);
+    return null;
+  }
+}
+
+
 export async function flagResource(uri, flags) {
   const preparedStatement = flags
         .map(flag => `${sparqlEscapeUri(uri)} schema:publication ${sparqlEscapeUri(flag)}. `);

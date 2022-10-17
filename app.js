@@ -7,7 +7,8 @@ import {
   sendErrorAlert,
   getRelatedSubjectsForSubmission,
   getSubmissionInfoForFormData,
-  flagResource
+  flagResource,
+  getSubmissionInforForRemoteDataObject
 } from "./util/queries";
 import exportConfig from "./exportConfig";
 import rules from "./rules.js";
@@ -48,12 +49,13 @@ app.post("/delta", async function (req, res) {
 
 async function processSubject(subject) {
   try {
-    const submissionInfo = await getSubmissionInfoForFormData(subject);
+    const submissionInfo =
+          await getSubmissionInfoForFormData(subject) ||
+          await getSubmissionInforForRemoteDataObject(subject); //Cached files can come in later, we can re-publish here
 
     if (submissionInfo) {
       await processSubmission(submissionInfo);
     }
-
   } catch (e) {
     console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
     await sendErrorAlert({
