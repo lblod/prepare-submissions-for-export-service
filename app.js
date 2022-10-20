@@ -1,12 +1,17 @@
 import bodyParser from "body-parser";
 import { app } from "mu";
-import {
-  createResource,
-} from "./lib/resource";
+import { querySudo } from "@lblod/mu-auth-sudo";
 import { Delta } from "./lib/delta";
 import { ProcessingQueue } from './lib/processing-queue';
-import { sendErrorAlert, getUnpublishedSubjectsFromSubmission } from "./util/queries";
-import jsonExportConfig from "/config/export.json";
+import {
+  sendErrorAlert,
+  getRelatedSubjectsForSubmission,
+  getSubmissionInfoForFormData,
+  flagResource,
+  getSubmissionInforForRemoteDataObject
+} from "./util/queries";
+import exportConfig from "./exportConfig";
+import rules from "./rules.js";
 
 const processSubjectsQueue = new ProcessingQueue('file-sync-queue');
 
@@ -34,42 +39,55 @@ app.post("/delta", async function (req, res) {
 
   const inserts = delta.inserts;
   const subjects = inserts.map(insert => insert.subject.value);
-  const uniqueSubjects = [...new Set(subjects)];
+  const uniqueSubjects = [ ...new Set(subjects) ];
 
-  if (uniqueSubjects.length == 0) {
-    return res.status(204).send();
-  } else {
-    processSubjectsQueue.addJob(() => processSubjects(uniqueSubjects));
-    return res.status(200).send();
+  for(const subject of uniqueSubjects) {
+    processSubjectsQueue.addJob(() => processSubject(subject));
   }
+  return res.status(200).send();
 });
 
-async function processSubjects(subjects, submission=null) {
-  for (let subject of subjects) {
-    try {
-      const resource = await createResource(subject);
-      if (resource) {
-        await processResource(resource, submission);
-      }
-    } catch (e) {
-      console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
-      await sendErrorAlert({
-        message: `Something unexpected went wrong while processing a subject: ${e.message ? e.message : e}`
-      });
+async function processSubject(subject) {
+  try {
+    const submissionInfo =
+          await getSubmissionInfoForFormData(subject) ||
+          await getSubmissionInforForRemoteDataObject(subject); //Cached files can come in later, we can re-publish here
+
+    if (submissionInfo) {
+      await processSubmission(submissionInfo);
     }
+  } catch (e) {
+    console.error(`Error while processing a subject: ${e.message ? e.message : e}`);
+    await sendErrorAlert({
+      message: `Something unexpected went wrong while processing a subject: ${e.message ? e.message : e}`
+    });
   }
 }
 
-async function processResource(resource, submission) {
+async function processSubmission(submissionInfo) {
   try {
-    if (await resource.canBeExported(submission)) {
-      console.log(`Resource ${resource.uri} can be exported, flagging...`);
-      await resource.flag();
+    const exportingRules = getExportingRules(submissionInfo);
+    const publicationFlags = await getPublicationFlags(submissionInfo, exportingRules);
 
-      //Resource has been flag, we've found the submission, let's see if there is nothing else that can be exported
-      await scheduleRemainingResources(resource.linkedSubmission);
-    } else {
-      console.log(`Resource ${resource.uri} can not be exported according to the configuration.`);
+    if(publicationFlags.length) {
+      //start the export (i.e. flagging) submission and related resources
+      let unexportedRelatedSubjects = [ submissionInfo.submission.value ];
+
+      // Note: the reason why we have to flag all related resources is because the
+      // publication graph maintainer is currently too stupid to do this.
+      for (const config of exportConfig) {
+        const subjects = await getRelatedSubjectsForSubmission(
+          submissionInfo.submission.value,
+          config.type,
+          config.pathToSubmission
+        );
+        unexportedRelatedSubjects = [ ...unexportedRelatedSubjects, ...subjects ];
+      }
+      // Flag every resource found
+      for (const subject of unexportedRelatedSubjects) {
+        console.log(`Resource ${subject} can be exported, flagging...`);
+        await flagResource(subject, publicationFlags);
+      }
     }
   } catch (error) {
     console.error(`Error while processing a resource: ${error.message ? error.message : error}`);
@@ -79,12 +97,35 @@ async function processResource(resource, submission) {
   }
 }
 
-async function scheduleRemainingResources(submission){
-  let unpublishedSubjects = [];
-  for (const config of jsonExportConfig.export) {
-    const subjects = await getUnpublishedSubjectsFromSubmission(submission, config.type, config.pathToSubmission);
-    unpublishedSubjects = [ ...unpublishedSubjects, ...subjects];
+function getExportingRules(submissionInfo) {
+  return rules.filter(rule => rule.documentType == submissionInfo.decisionType.value);
+}
+
+async function getPublicationFlags(submissionInfo, exportingRules) {
+  // A submission can match multiple rules and may have multiple publication flags.
+  // But once a type of publication flag has been matched for a rule, we don't need to check further for this flag.
+  // This leaves room for performance tweaks (stop querying the DB earlier), hence the boilerplate.
+  const groupedRules = exportingRules.reduce((acc, rule) => {
+    if(acc[rule.publicationFlag]) {
+      acc[rule.publicationFlag].push(rule);
+    }
+    else {
+      acc[rule.publicationFlag] = [ rule ];
+    }
+    return acc;
+  }, {});
+
+  const publicationFlags = [];
+
+  for(const flag of Object.keys(groupedRules)) {
+    for(const rule of groupedRules[flag]) {
+      const result = await querySudo(rule.matchQuery(submissionInfo.formData.value));
+      if(result.results.bindings.length) {
+        publicationFlags.push(flag);
+        break;
+      }
+    }
   }
-  unpublishedSubjects = [... new Set(unpublishedSubjects)];
-  await processSubjects(unpublishedSubjects, submission); //This ends eventually
+
+  return publicationFlags;
 }

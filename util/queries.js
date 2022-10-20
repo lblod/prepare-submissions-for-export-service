@@ -2,135 +2,56 @@ import { uuid, sparqlEscapeString, sparqlEscapeUri, sparqlEscapeDateTime } from 
 import { querySudo as query, updateSudo as update } from "@lblod/mu-auth-sudo";
 
 const CREATOR = 'http://lblod.data.gift/services/prepare-submissions-for-export-service';
-const PUBLIC_DECISIONS_PUBLICATION_CONCEPT = 'http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325';
 
-export async function getResourceInfo(uri) {
-  const result = await query(`
-    PREFIX dct: <http://purl.org/dc/terms/>
-
-    SELECT ?resource ?type
-    WHERE {
-      GRAPH ?g {
-        BIND (${sparqlEscapeUri(uri)} as ?resource)
-        ?resource a ?type .
-      }
-      FILTER NOT EXISTS {
-        GRAPH ?g {
-          ?resource <http://schema.org/publication> ${sparqlEscapeUri(PUBLIC_DECISIONS_PUBLICATION_CONCEPT)}.
-        }
-      }
-      FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
-    }
-  `);
-
-  if (result.results.bindings.length) {
-    return result.results.bindings;
-  } else {
-    console.log(`Resource ${uri} not found or already published`);
-    return null;
-  }
-}
-
-export async function getUnpublishedSubjectsFromSubmission(submission, type, pathToSubmission) {
+export async function getRelatedSubjectsForSubmission(submission, subjectType, pathToSubmission) {
   // TODO:
-  // 1. This is extremely implict: the pathToSubmission expects the name `?subject` as root node, and `?submission` as submission
+  // 1. Note: the pathToSubmission expects the name `?subject` as root node, and `?submission` as submission (see exportConfig.js)
   // 2. Re-think the black-listing of graphs.
-  if(type == 'http://rdf.myexperiment.org/ontologies/base/Submission'){
-    console.log(`Encountered ${type} for ${submission}, we don't need to fetch this.`);
-    console.log(`Either it was already published, or it will be through a subsequent incoming delta`);
-    return [];
-  }
-
-  const bindSubmission = `BIND(${sparqlEscapeUri(submission)} as ?submission)`;
-
   const queryStr = `
     SELECT DISTINCT ?subject WHERE {
-      ${bindSubmission}
+      BIND(${sparqlEscapeUri(submission)} as ?submission)
 
       GRAPH ?g {
-        ?subject a ${sparqlEscapeUri(type)}.
+        ?subject a ${sparqlEscapeUri(subjectType)}.
       }
 
       ${pathToSubmission}
 
-      FILTER NOT EXISTS {
-        ?subject <http://schema.org/publication> ${sparqlEscapeUri(PUBLIC_DECISIONS_PUBLICATION_CONCEPT)}.
-      }
-
-      FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
+      FILTER(?g NOT IN (
+        <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+        <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+        )
+      )
     }
   `;
 
   const result = await query(queryStr);
-  if (result.results.bindings.length) {
-    return result.results.bindings.map(r => r.subject.value);
-  }
-  else {
-    console.log(`No unpublished subjects found for ${submission} and ${type}`);
-    return [];
-  }
+  return result.results.bindings.map(r => r.subject.value);
 }
 
-export async function getSubmissionInfo(uri, pathToSubmission, type, submission = null) {
-  let resolvedPathToSubmission = '';
-  let bindSubmission = '';
-
-  //TODO: this is kind of specific logic which should made more explicit from the config.
-  if(type == 'http://www.w3.org/2004/02/skos/core#Concept'){
-    if(!submission){
-      console.log(`No submissionURI provided for ${type} and ${uri}, doing nothig`);
-      return null;
-    }
-
-    else if(pathToSubmission){
-      resolvedPathToSubmission = pathToSubmission.replace(/\?subject/g, sparqlEscapeUri(uri));
-      bindSubmission = `BIND(${sparqlEscapeUri(submission)} as ?submission)`;
-    }
-
-    else {
-      throw `Unexpected configuration for ${type} and ${uri}!`;
-    }
-  }
-
-  else if(type == 'http://rdf.myexperiment.org/ontologies/base/Submission'){
-    bindSubmission = `BIND(${sparqlEscapeUri(uri)} as ?submission)`;
-  }
-
-  else if(pathToSubmission){
-    resolvedPathToSubmission = pathToSubmission.replace(/\?subject/g, sparqlEscapeUri(uri));
-  }
-
-  else {
-    throw `Unexpected configuration for ${type} and ${uri}!`;
-  }
-
-  //TODO: Re-think the black-listing of graphs. The path can cross multiple graphs.
+export async function getSubmissionInfoForFormData(formData) {
+  //TODO: Re-think the black-listing of graphs.
   const result = await query(`
-    SELECT DISTINCT ?submission ?decisionType ?regulationType ?classificationOrgaan ?classificationEenheid {
-      ${bindSubmission}
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
-      GRAPH ?g {
-        ${sparqlEscapeUri(uri)} a ${sparqlEscapeUri(type)}.
-      }
+    SELECT DISTINCT ?submission ?decisionType ?formData
+      WHERE {
+        BIND(${sparqlEscapeUri(formData)} as ?formData)
 
-      ${resolvedPathToSubmission}
+        GRAPH ?g {
+          ?formData a <http://lblod.data.gift/vocabularies/automatische-melding/FormData>;
+            ext:formSubmissionStatus <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c>;
+            <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType.
 
-      ?submission <http://www.w3.org/ns/prov#generated> ?form .
-      ?submission <http://www.w3.org/ns/adms#status> <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c>.
+          ?submission <http://www.w3.org/ns/prov#generated> ?formData;
+            a <http://rdf.myexperiment.org/ontologies/base/Submission>.
+        }
 
-      ?form <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType ;
-        <http://data.europa.eu/eli/ontology#passed_by> ?orgaanInTijd .
-
-      OPTIONAL {
-        ?form <http://mu.semte.ch/vocabularies/ext/regulationType> ?regulationType .
-      }
-
-      ?orgaanInTijd <http://data.vlaanderen.be/ns/mandaat#isTijdspecialisatieVan> ?orgaan .
-      ?orgaan <http://data.vlaanderen.be/ns/besluit#classificatie> ?classificationOrgaan ;
-        <http://data.vlaanderen.be/ns/besluit#bestuurt> ?eenheid .
-      ?eenheid <http://data.vlaanderen.be/ns/besluit#classificatie> ?classificationEenheid .
-
-      FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
+        FILTER(?g NOT IN (
+          <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+          <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+          )
+        )
     }`);
 
   if (result.results.bindings.length) {
@@ -141,19 +62,80 @@ export async function getSubmissionInfo(uri, pathToSubmission, type, submission 
   }
 }
 
-export async function flagResource(uri) {
+export async function getSubmissionInforForRemoteDataObject(remoteDataObject) {
+  //TODO: Re-think the black-listing of graphs.
+  //TODO: it seems user-entered remoteDataobjects are stored in public-graph still
+  const result = await query(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX schema: <http://schema.org/>
+
+    SELECT DISTINCT ?submission ?decisionType ?formData
+      WHERE {
+        BIND(${sparqlEscapeUri(remoteDataObject)} as ?remoteDataObject)
+
+        ?remoteDataObject a <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject>;
+          <http://www.w3.org/ns/adms#status> <http://lblod.data.gift/file-download-statuses/success>.
+        ?pFile <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#dataSource> ?remoteDataObject.
+
+        GRAPH ?g {
+          ?formData a <http://lblod.data.gift/vocabularies/automatische-melding/FormData>;
+            ext:formSubmissionStatus <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c>;
+            <http://mu.semte.ch/vocabularies/ext/decisionType> ?decisionType.
+
+          ?formData <http://purl.org/dc/terms/hasPart> ?remoteDataObject.
+
+          ?submission a <http://rdf.myexperiment.org/ontologies/base/Submission>.
+          ?submission <http://www.w3.org/ns/prov#generated> ?formData;
+            a <http://rdf.myexperiment.org/ontologies/base/Submission>.
+
+          ?submission schema:publication ?flag.
+        }
+
+        FILTER NOT EXISTS {
+          ?pFile schema:publication ?flag.
+        }
+
+        FILTER(?g NOT IN (
+          <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+          <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+          )
+        )
+    }`);
+
+  if (result.results.bindings.length) {
+    console.log(`Found late RemoteDataObject coming in later ${remoteDataObject}`);
+    return result.results.bindings[0];
+  } else {
+    console.log(`Submission info not found.`);
+    return null;
+  }
+}
+
+
+export async function flagResource(uri, flags) {
+  const preparedStatement = flags
+        .map(flag => `${sparqlEscapeUri(uri)} schema:publication ${sparqlEscapeUri(flag)}. `);
+
   await update(`
     PREFIX schema: <http://schema.org/>
     INSERT {
       GRAPH ?g {
-        ${sparqlEscapeUri(uri)}
-          schema:publication <http://lblod.data.gift/concepts/83f7b480-fcaf-4795-b603-7f3bce489325> .
+        ${preparedStatement.join('\n')}
       }
     } WHERE {
       GRAPH ?g {
-        ${sparqlEscapeUri(uri)} ?p ?o .
+        ${sparqlEscapeUri(uri)} a ?something .
       }
-      FILTER(?g NOT IN (<http://redpencil.data.gift/id/deltas/producer/loket-submissions>))
+
+      FILTER NOT EXISTS {
+        ${preparedStatement.join('\n')}
+      }
+
+      FILTER(?g NOT IN (
+        <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+        <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+        )
+      )
     }`);
 }
 
