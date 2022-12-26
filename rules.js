@@ -288,4 +288,40 @@ for (const worshipDecisionType of worshipDecisionTypes) {
   );
 }
 
+const representativeOrgansSubmissionTypes = [
+  "https://data.vlaanderen.be/id/concept/BesluitType/0fc2c27d-a03c-4e3f-9db1-f10f026f76f8",
+  "https://data.vlaanderen.be/id/concept/BesluitType/2b12630f-8c4e-40a4-8a61-a0c45621a1e6"
+];
+
+for (const submissionType of representativeOrgansSubmissionTypes) {
+  rules.push(
+    {
+      'documentType': submissionType,
+      'matchQuery': formData => `
+        ${PREFIXES}
+
+        SELECT DISTINCT ?submission
+        WHERE {
+          BIND(${sparqlEscapeUri(formData)} as ?formData)
+          VALUES ?classificatie {
+            <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/36372fad-0358-499c-a4e3-f412d2eae213>
+          }
+
+          ?formData a melding:FormData;
+            dct:type ${sparqlEscapeUri(submissionType)}.
+
+          ?submission a meb:Submission;
+            prov:generated ?formData;
+            adms:status ${sparqlEscapeUri(STATUS_SENT)};
+            pav:createdBy ?eenheid.
+
+          ?eenheid besluit:classificatie ?classificatie.
+        }
+        LIMIT 1
+      `,
+      'publicationFlag': FLAG_FOR_WORSHIP
+    }
+  );
+}
+
 export default rules;
