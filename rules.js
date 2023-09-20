@@ -49,7 +49,6 @@ const decisionTypes = [
   "https://data.vlaanderen.be/id/concept/BesluitType/c945b531-4742-43fe-af55-b13da6ecc6fe",
   "https://data.vlaanderen.be/id/concept/BesluitType/c417f3da-a3bd-47c5-84bf-29007323a362",
   "https://data.vlaanderen.be/id/concept/BesluitType/849c66c2-ba33-4ac1-a693-be48d8ac7bc7",
-  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/4f938e44-8bce-4d3a-b5a7-b84754fe981a", // Aanvraag desaffectatie presbyteria/kerken (GO)
 ];
 
 for (const decisionType of decisionTypes) {
