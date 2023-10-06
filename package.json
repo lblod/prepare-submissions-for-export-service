@@ -1,6 +1,6 @@
 {
   "name": "prepare-submissions-for-export-service",
-  "version": "0.5.0",
+  "version": "0.6.0-rc.1",
   "description": "Microservice to prepares submitted submissions for exporting.",
   "repository": {
     "type": "git",
