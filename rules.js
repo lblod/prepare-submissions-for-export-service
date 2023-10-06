@@ -293,7 +293,12 @@ for (const worshipDecisionType of worshipDecisionTypes) {
 
 const representativeOrgansSubmissionTypes = [
   "https://data.vlaanderen.be/id/concept/BesluitType/0fc2c27d-a03c-4e3f-9db1-f10f026f76f8",
-  "https://data.vlaanderen.be/id/concept/BesluitType/2b12630f-8c4e-40a4-8a61-a0c45621a1e6"
+  "https://data.vlaanderen.be/id/concept/BesluitType/2b12630f-8c4e-40a4-8a61-a0c45621a1e6",
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/14793940-5b9c-4172-b108-c73665ad9d6a", // Samenvoeging (RO)
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/651525f8-8650-4ce8-8eea-f19b94d50b73", // Erkenning - reguliere procedure (RO)
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/d611364b-007b-49a7-b2bf-b8f4e5568777", // Naamswijziging (RO)
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/95a6c5a1-05af-4d48-b2ef-5ebb1e58783b", // Wijziging gebiedsomschrijving (RO)
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/6d1a3aea-6773-4e10-924d-38be596c5e2e", // Opheffing van annexe kerken en kapelanijen (RO)
 ];
 
 for (const submissionType of representativeOrgansSubmissionTypes) {
