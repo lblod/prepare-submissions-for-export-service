@@ -269,6 +269,8 @@ const worshipDecisionTypes = [
   "https://data.vlaanderen.be/id/concept/BesluitDocumentType/ce569d3d-25ff-4ce9-a194-e77113597e29", // Budgetten(wijzigingen) - Indiening bij toezichthoudende gemeente of provincie (CB)
   "https://data.vlaanderen.be/id/concept/BesluitType/d85218e2-a75f-4a30-9182-512b5c9dd1b2", // Budget(wijziging) - Indiening bij toezichthoudende gemeente of provincie (EB)
   "https://data.vlaanderen.be/id/concept/BesluitType/d463b6d1-c207-4c1a-8c08-f2c7dd1fa53b", // Budget(wijziging) - Indiening bij centraal bestuur of representatief orgaan (EB)
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/863caf68-97c9-4ee0-adb5-620577ea8146", // Melding onvolledigheid inzending eredienstbestuur (GO/PO)
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/802a7e56-54f8-488d-b489-4816321fb9ae" // Opstart beroepsprocedure naar aanleiding van een beslissing (GO/PO/EB/CB)
 ];
 
 for (const worshipDecisionType of worshipDecisionTypes) {
@@ -313,6 +315,7 @@ const representativeOrgansSubmissionTypes = [
   "https://data.vlaanderen.be/id/concept/BesluitDocumentType/d611364b-007b-49a7-b2bf-b8f4e5568777", // Naamswijziging (RO)
   "https://data.vlaanderen.be/id/concept/BesluitDocumentType/95a6c5a1-05af-4d48-b2ef-5ebb1e58783b", // Wijziging gebiedsomschrijving (RO)
   "https://data.vlaanderen.be/id/concept/BesluitDocumentType/6d1a3aea-6773-4e10-924d-38be596c5e2e", // Opheffing van annexe kerken en kapelanijen (RO)
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/802a7e56-54f8-488d-b489-4816321fb9ae"  // Opstart beroepsprocedure naar aanleiding van een beslissing (RO)
 ];
 
 for (const submissionType of representativeOrgansSubmissionTypes) {
