@@ -270,7 +270,8 @@ const worshipDecisionTypes = [
   "https://data.vlaanderen.be/id/concept/BesluitType/d85218e2-a75f-4a30-9182-512b5c9dd1b2", // Budget(wijziging) - Indiening bij toezichthoudende gemeente of provincie (EB)
   "https://data.vlaanderen.be/id/concept/BesluitType/d463b6d1-c207-4c1a-8c08-f2c7dd1fa53b", // Budget(wijziging) - Indiening bij centraal bestuur of representatief orgaan (EB)
   "https://data.vlaanderen.be/id/concept/BesluitDocumentType/863caf68-97c9-4ee0-adb5-620577ea8146", // Melding onvolledigheid inzending eredienstbestuur (GO/PO)
-  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/802a7e56-54f8-488d-b489-4816321fb9ae" // Opstart beroepsprocedure naar aanleiding van een beslissing (GO/PO/EB/CB)
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/802a7e56-54f8-488d-b489-4816321fb9ae", // Opstart beroepsprocedure naar aanleiding van een beslissing (GO/PO/EB/CB)
+  "https://data.vlaanderen.be/id/concept/BesluitDocumentType/a970c99d-c06c-4942-9815-153bf3e87df2"  // Afschrift erkenningszoekende besturen (EB)
 ];
 
 for (const worshipDecisionType of worshipDecisionTypes) {
