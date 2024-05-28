@@ -11,6 +11,13 @@ export default [
                         a <http://rdf.myexperiment.org/ontologies/base/Submission>.`
   },
   {
+    type: `http://data.vlaanderen.be/ns/besluit#Artikel`,
+    pathToSubmission: `?submission <http://purl.org/dc/terms/subject> ?decision;
+                        a <http://rdf.myexperiment.org/ontologies/base/Submission>.
+                        ?decision <http://data.europa.eu/eli/ontology#has_part> ?subject.
+                       `
+  },
+  {
     type: `http://lblod.data.gift/vocabularies/besluit/TaxRate`,
     pathToSubmission: `?submission <http://www.w3.org/ns/prov#generated> ?formData;
                          a <http://rdf.myexperiment.org/ontologies/base/Submission>.
