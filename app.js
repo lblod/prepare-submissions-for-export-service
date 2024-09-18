@@ -71,13 +71,13 @@ async function processSubmission(submissionInfo) {
 
     if(publicationFlags.length) {
       //start the export (i.e. flagging) submission and related resources
-      let unexportedRelatedSubjects = [ submissionInfo.submission.value ];
+      let unexportedRelatedSubjects = [ submissionInfo.submission ];
 
       // Note: the reason why we have to flag all related resources is because the
       // publication graph maintainer is currently too stupid to do this.
       for (const config of exportConfig) {
         const subjects = await getRelatedSubjectsForSubmission(
-          submissionInfo.submission.value,
+          submissionInfo.submission,
           config.type,
           config.pathToSubmission
         );
@@ -98,7 +98,7 @@ async function processSubmission(submissionInfo) {
 }
 
 function getExportingRules(submissionInfo) {
-  return rules.filter(rule => rule.documentType == submissionInfo.decisionType.value);
+  return rules.filter(rule => submissionInfo.decisionTypes.includes(rule.documentType));
 }
 
 async function getPublicationFlags(submissionInfo, exportingRules) {
@@ -119,7 +119,7 @@ async function getPublicationFlags(submissionInfo, exportingRules) {
 
   for(const flag of Object.keys(groupedRules)) {
     for(const rule of groupedRules[flag]) {
-      const result = await querySudo(rule.matchQuery(submissionInfo.formData.value));
+      const result = await querySudo(rule.matchQuery(submissionInfo.formData));
       if(result.results.bindings.length) {
         publicationFlags.push(flag);
         break;
