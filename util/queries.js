@@ -55,7 +55,12 @@ export async function getSubmissionInfoForFormData(formData) {
     }`);
 
   if (result.results.bindings.length) {
-    return result.results.bindings[0];
+    // We can receive a submission with multiple decision types that all need to be evaluated
+    return {
+      submission: result.results.bindings[0].submission.value,
+      formData: result.results.bindings[0].formData.value,
+      decisionTypes: result.results.bindings.map(res => res.decisionType.value)
+    };
   } else {
     console.log(`Submission info not found.`);
     return null;
@@ -104,7 +109,12 @@ export async function getSubmissionInforForRemoteDataObject(remoteDataObject) {
 
   if (result.results.bindings.length) {
     console.log(`Found late RemoteDataObject coming in later ${remoteDataObject}`);
-    return result.results.bindings[0];
+    // We can receive a submission with multiple decision types that all need to be evaluated
+    return {
+      submission: result.results.bindings[0].submission.value,
+      formData: result.results.bindings[0].formData.value,
+      decisionTypes: result.results.bindings.map(res => res.decisionType.value)
+    };
   } else {
     console.log(`Submission info not found.`);
     return null;
