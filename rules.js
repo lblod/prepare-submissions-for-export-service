@@ -249,6 +249,58 @@ for (const decisionListOption of decisionListOptions) {
   );
 }
 
+const gemeenteDecisionDocumentTypes = [
+  'https://data.vlaanderen.be/id/concept/BesluitType/b0fcc0c3-bb33-427f-8da2-4ef3833c9060',
+  'https://data.vlaanderen.be/id/concept/BesluitType/f1fd8f88-95b0-4085-b766-008b5867d992'
+];
+
+for (const documentType of gemeenteDecisionDocumentTypes) {
+const gemeente = [
+  {
+    "orgaan": "http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/5ab0e9b8a3b2ca7c5e000005", // Gemeenteraad
+    "eenheid": "http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000001" // Gemeente
+  },
+];
+rules.push(
+  {
+    'documentType': documentType,
+    'matchQuery': formData => `
+      ${PREFIXES}
+
+      SELECT DISTINCT ?submission
+      WHERE {
+        BIND(${sparqlEscapeUri(formData)} as ?formData)
+
+        ?formData a melding:FormData;
+          dct:type ${sparqlEscapeUri(documentType)};
+          eli:passed_by ?bestuursorgaanInTijd.
+
+        ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan.
+        ?bestuursorgaan besluit:classificatie ${sparqlEscapeUri(gemeente.orgaan)};
+          besluit:bestuurt ?eenheid.
+
+        ?eenheid besluit:classificatie ${sparqlEscapeUri(gemeente.eenheid)}.
+
+        ?submission a meb:Submission;
+          prov:generated ?formData;
+          adms:status ${sparqlEscapeUri(STATUS_SENT)};
+          pav:createdBy ?eenheid.
+
+        FILTER NOT EXISTS {
+          VALUES ?classificatie {
+            <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/66ec74fd-8cfc-4e16-99c6-350b35012e86>
+            <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/f9cac08a-13c1-49da-9bcb-f650b0604054>
+          }
+          ?eenheid besluit:classificatie ?classificatie.
+        }
+      }
+      LIMIT 1
+    `,
+    'publicationFlag': FLAG_FOR_PUBLIC
+  }
+);
+}
+
 const worshipDecisionTypes = [
   "https://data.vlaanderen.be/id/concept/BesluitDocumentType/8e791b27-7600-4577-b24e-c7c29e0eb773",
   "https://data.vlaanderen.be/id/concept/BesluitType/e44c535d-4339-4d15-bdbf-d4be6046de2c",
