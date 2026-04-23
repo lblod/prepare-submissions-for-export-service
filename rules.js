@@ -18,7 +18,6 @@ import { sparqlEscapeUri } from "mu";
 const PREFIXES = `
   PREFIX dct: <http://purl.org/dc/terms/>
   PREFIX melding: <http://lblod.data.gift/vocabularies/automatische-melding/>
-  PREFIX dct: <http://purl.org/dc/terms/>
   PREFIX meb: <http://rdf.myexperiment.org/ontologies/base/>
   PREFIX prov: <http://www.w3.org/ns/prov#>
   PREFIX adms: <http://www.w3.org/ns/adms#>
