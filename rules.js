@@ -255,12 +255,10 @@ const gemeenteDecisionDocumentTypes = [
 ];
 
 for (const documentType of gemeenteDecisionDocumentTypes) {
-const gemeente = [
-  {
-    "orgaan": "http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/5ab0e9b8a3b2ca7c5e000005", // Gemeenteraad
-    "eenheid": "http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000001" // Gemeente
-  },
-];
+const gemeente = {
+  "orgaan": "http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/5ab0e9b8a3b2ca7c5e000005", // Gemeenteraad
+  "eenheid": "http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000001" // Gemeente
+};
 rules.push(
   {
     'documentType': documentType,
