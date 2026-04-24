@@ -18,6 +18,7 @@ import { sparqlEscapeUri } from "mu";
 const PREFIXES = `
   PREFIX dct: <http://purl.org/dc/terms/>
   PREFIX melding: <http://lblod.data.gift/vocabularies/automatische-melding/>
+  PREFIX dct: <http://purl.org/dc/terms/>
   PREFIX meb: <http://rdf.myexperiment.org/ontologies/base/>
   PREFIX prov: <http://www.w3.org/ns/prov#>
   PREFIX adms: <http://www.w3.org/ns/adms#>
@@ -48,6 +49,8 @@ const decisionTypes = [
   "https://data.vlaanderen.be/id/concept/BesluitType/c945b531-4742-43fe-af55-b13da6ecc6fe",
   "https://data.vlaanderen.be/id/concept/BesluitType/c417f3da-a3bd-47c5-84bf-29007323a362",
   "https://data.vlaanderen.be/id/concept/BesluitType/849c66c2-ba33-4ac1-a693-be48d8ac7bc7",
+  "https://data.vlaanderen.be/id/concept/BesluitType/b0fcc0c3-bb33-427f-8da2-4ef3833c9060",
+  "https://data.vlaanderen.be/id/concept/BesluitType/f1fd8f88-95b0-4085-b766-008b5867d992",
 ];
 
 for (const decisionType of decisionTypes) {
@@ -246,56 +249,6 @@ for (const decisionListOption of decisionListOptions) {
       'publicationFlag': FLAG_FOR_PUBLIC
     }
   );
-}
-
-const gemeenteDecisionDocumentTypes = [
-  'https://data.vlaanderen.be/id/concept/BesluitType/b0fcc0c3-bb33-427f-8da2-4ef3833c9060',
-  'https://data.vlaanderen.be/id/concept/BesluitType/f1fd8f88-95b0-4085-b766-008b5867d992'
-];
-
-for (const documentType of gemeenteDecisionDocumentTypes) {
-const gemeente = {
-  "orgaan": "http://data.vlaanderen.be/id/concept/BestuursorgaanClassificatieCode/5ab0e9b8a3b2ca7c5e000005", // Gemeenteraad
-  "eenheid": "http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/5ab0e9b8a3b2ca7c5e000001" // Gemeente
-};
-rules.push(
-  {
-    'documentType': documentType,
-    'matchQuery': formData => `
-      ${PREFIXES}
-
-      SELECT DISTINCT ?submission
-      WHERE {
-        BIND(${sparqlEscapeUri(formData)} as ?formData)
-
-        ?formData a melding:FormData;
-          dct:type ${sparqlEscapeUri(documentType)};
-          eli:passed_by ?bestuursorgaanInTijd.
-
-        ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan.
-        ?bestuursorgaan besluit:classificatie ${sparqlEscapeUri(gemeente.orgaan)};
-          besluit:bestuurt ?eenheid.
-
-        ?eenheid besluit:classificatie ${sparqlEscapeUri(gemeente.eenheid)}.
-
-        ?submission a meb:Submission;
-          prov:generated ?formData;
-          adms:status ${sparqlEscapeUri(STATUS_SENT)};
-          pav:createdBy ?eenheid.
-
-        FILTER NOT EXISTS {
-          VALUES ?classificatie {
-            <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/66ec74fd-8cfc-4e16-99c6-350b35012e86>
-            <http://data.vlaanderen.be/id/concept/BestuurseenheidClassificatieCode/f9cac08a-13c1-49da-9bcb-f650b0604054>
-          }
-          ?eenheid besluit:classificatie ?classificatie.
-        }
-      }
-      LIMIT 1
-    `,
-    'publicationFlag': FLAG_FOR_PUBLIC
-  }
-);
 }
 
 const worshipDecisionTypes = [
