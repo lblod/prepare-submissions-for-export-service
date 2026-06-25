@@ -121,6 +121,33 @@ export async function getSubmissionInforForRemoteDataObject(remoteDataObject) {
   }
 }
 
+export async function getSentSubmissionsSince(sinceDate) {
+  const result = await query(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX meb: <http://rdf.myexperiment.org/ontologies/base/>
+    PREFIX melding: <http://lblod.data.gift/vocabularies/automatische-melding/>
+    PREFIX prov: <http://www.w3.org/ns/prov#>
+
+    SELECT DISTINCT ?formData WHERE {
+      GRAPH ?g {
+        ?submission a meb:Submission;
+          prov:generated ?formData;
+          dct:created ?created.
+        ?formData a melding:FormData;
+          ext:formSubmissionStatus <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507b374c>.
+      }
+
+      FILTER(?g NOT IN (
+        <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+        <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+        )
+      )
+      FILTER(?created >= ${sparqlEscapeDateTime(sinceDate)})
+    }`);
+
+  return result.results.bindings.map(r => r.formData.value);
+}
 
 export async function flagResource(uri, flags) {
   const preparedStatement = flags
