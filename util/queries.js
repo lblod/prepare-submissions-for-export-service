@@ -135,7 +135,7 @@ export async function getSentSubmissionsSince(sinceDate) {
           prov:generated ?formData;
           dct:created ?created.
         ?formData a melding:FormData;
-          ext:formSubmissionStatus <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507b374c>.
+          ext:formSubmissionStatus <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c>.
       }
 
       FILTER(?g NOT IN (
