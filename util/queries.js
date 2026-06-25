@@ -149,9 +149,28 @@ export async function getSentSubmissionsSince(sinceDate) {
   return result.results.bindings.map(r => r.formData.value);
 }
 
+
 export async function flagResource(uri, flags) {
   const preparedStatement = flags
         .map(flag => `${sparqlEscapeUri(uri)} schema:publication ${sparqlEscapeUri(flag)}. `);
+
+  await update(`
+    PREFIX schema: <http://schema.org/>
+    DELETE {
+      GRAPH ?g {
+        ${sparqlEscapeUri(uri)} schema:publication ?flag.
+      }
+    } WHERE {
+      GRAPH ?g {
+        ${sparqlEscapeUri(uri)} schema:publication ?flag.
+      }
+
+      FILTER(?g NOT IN (
+        <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+        <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+        )
+      )
+    }`);
 
   await update(`
     PREFIX schema: <http://schema.org/>
