@@ -151,8 +151,25 @@ export async function getSentSubmissionsSince(sinceDate) {
 
 
 export async function flagResource(uri, flags) {
-  const preparedStatement = flags
-        .map(flag => `${sparqlEscapeUri(uri)} schema:publication ${sparqlEscapeUri(flag)}. `);
+  const blacklistFilter = `FILTER(?g NOT IN (
+        <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+        <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+        )
+      )`;
+  const insertStatements = flags
+        .map(f => `${sparqlEscapeUri(uri)} schema:publication ${sparqlEscapeUri(f)}.`)
+        .join('\n');
+
+  const askResult = await query(`
+    PREFIX schema: <http://schema.org/>
+    ASK WHERE {
+      ${flags.map(f => `GRAPH ?g { ${sparqlEscapeUri(uri)} schema:publication ${sparqlEscapeUri(f)}. }`).join(' ')}
+      ${blacklistFilter}
+    }`);
+
+  if (askResult.boolean) {
+    return;
+  }
 
   await update(`
     PREFIX schema: <http://schema.org/>
@@ -160,38 +177,17 @@ export async function flagResource(uri, flags) {
       GRAPH ?g {
         ${sparqlEscapeUri(uri)} schema:publication ?flag.
       }
-    } WHERE {
-      GRAPH ?g {
-        ${sparqlEscapeUri(uri)} schema:publication ?flag.
-      }
-
-      FILTER(?g NOT IN (
-        <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
-        <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
-        )
-      )
-    }`);
-
-  await update(`
-    PREFIX schema: <http://schema.org/>
+    }
     INSERT {
       GRAPH ?g {
-        ${preparedStatement.join('\n')}
+        ${insertStatements}
       }
     } WHERE {
       GRAPH ?g {
         ${sparqlEscapeUri(uri)} a ?something .
+        OPTIONAL { ${sparqlEscapeUri(uri)} schema:publication ?flag. }
       }
-
-      FILTER NOT EXISTS {
-        ${preparedStatement.join('\n')}
-      }
-
-      FILTER(?g NOT IN (
-        <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
-        <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
-        )
-      )
+      ${blacklistFilter}
     }`);
 }
 
