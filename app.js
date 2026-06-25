@@ -1,4 +1,5 @@
 import bodyParser from "body-parser";
+import cron from "node-cron";
 import { app } from "mu";
 import { querySudo } from "@lblod/mu-auth-sudo";
 import { Delta } from "./lib/delta";
@@ -69,6 +70,30 @@ app.get("/healing", async function (req, res) {
     return res.status(500).send({ error: `Healing failed: ${e.message ? e.message : e}` });
   }
 });
+
+const MINI_HEALING_ENABLED = (process.env.MINI_HEALING_ENABLED || 'true').toLowerCase() === 'true';
+const MINI_HEALING_CRON = process.env.MINI_HEALING_CRON || '0 2 * * *';
+const MINI_HEALING_DAYS = parseInt(process.env.MINI_HEALING_DAYS || '7', 10);
+
+if (MINI_HEALING_ENABLED) {
+  cron.schedule(MINI_HEALING_CRON, async () => {
+    try {
+      const sinceDate = new Date();
+      sinceDate.setDate(sinceDate.getDate() - MINI_HEALING_DAYS);
+      console.log(`Mini-healing: re-flagging submissions sent since ${sinceDate.toISOString()}`);
+      const subjects = await getSentSubmissionsSince(sinceDate.toISOString());
+      for (const subject of subjects) {
+        processSubjectsQueue.addJob(() => processSubject(subject));
+      }
+      console.log(`Mini-healing: enqueued ${subjects.length} submission(s)`);
+    } catch (e) {
+      console.error(`Error while running mini-healing: ${e.message ? e.message : e}`);
+      await sendErrorAlert({
+        message: `Mini-healing failed: ${e.message ? e.message : e}`
+      });
+    }
+  });
+}
 
 async function processSubject(subject) {
   try {
