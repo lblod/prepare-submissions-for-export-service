@@ -8,7 +8,8 @@ import {
   getRelatedSubjectsForSubmission,
   getSubmissionInfoForFormData,
   flagResource,
-  getSubmissionInforForRemoteDataObject
+  getSubmissionInforForRemoteDataObject,
+  getSentSubmissionsSince
 } from "./util/queries";
 import exportConfig from "./exportConfig";
 import rules from "./rules.js";
@@ -45,6 +46,28 @@ app.post("/delta", async function (req, res) {
     processSubjectsQueue.addJob(() => processSubject(subject));
   }
   return res.status(200).send();
+});
+
+app.get("/healing", async function (req, res) {
+  const since = req.query.since;
+  if (!since) {
+    return res.status(400).send({ error: "Missing 'since' query parameter. Expected format: YYYY-MM-DD" });
+  }
+  const sinceDate = new Date(since);
+  if (isNaN(sinceDate.getTime())) {
+    return res.status(400).send({ error: "Invalid 'since' date. Expected format: YYYY-MM-DD" });
+  }
+
+  try {
+    const subjects = await getSentSubmissionsSince(sinceDate.toISOString());
+    for (const subject of subjects) {
+      processSubjectsQueue.addJob(() => processSubject(subject));
+    }
+    return res.status(200).send({ count: subjects.length });
+  } catch (e) {
+    console.error(`Error while healing: ${e.message ? e.message : e}`);
+    return res.status(500).send({ error: `Healing failed: ${e.message ? e.message : e}` });
+  }
 });
 
 async function processSubject(subject) {
