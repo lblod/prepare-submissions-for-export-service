@@ -1,4 +1,5 @@
 import bodyParser from "body-parser";
+import cron from "node-cron";
 import { app } from "mu";
 import { querySudo } from "@lblod/mu-auth-sudo";
 import { Delta } from "./lib/delta";
@@ -8,7 +9,8 @@ import {
   getRelatedSubjectsForSubmission,
   getSubmissionInfoForFormData,
   flagResource,
-  getSubmissionInforForRemoteDataObject
+  getSubmissionInforForRemoteDataObject,
+  getSentSubmissionsSince
 } from "./util/queries";
 import exportConfig from "./exportConfig";
 import rules from "./rules.js";
@@ -46,6 +48,52 @@ app.post("/delta", async function (req, res) {
   }
   return res.status(200).send();
 });
+
+app.get("/healing", async function (req, res) {
+  const since = req.query.since;
+  if (!since) {
+    return res.status(400).send({ error: "Missing 'since' query parameter. Expected format: YYYY-MM-DD" });
+  }
+  const sinceDate = new Date(since);
+  if (isNaN(sinceDate.getTime())) {
+    return res.status(400).send({ error: "Invalid 'since' date. Expected format: YYYY-MM-DD" });
+  }
+
+  try {
+    const subjects = await getSentSubmissionsSince(sinceDate.toISOString());
+    for (const subject of subjects) {
+      processSubjectsQueue.addJob(() => processSubject(subject));
+    }
+    return res.status(200).send({ count: subjects.length });
+  } catch (e) {
+    console.error(`Error while healing: ${e.message ? e.message : e}`);
+    return res.status(500).send({ error: `Healing failed: ${e.message ? e.message : e}` });
+  }
+});
+
+const MINI_HEALING_ENABLED = (process.env.MINI_HEALING_ENABLED || 'true').toLowerCase() === 'true';
+const MINI_HEALING_CRON = process.env.MINI_HEALING_CRON || '0 2 * * *';
+const MINI_HEALING_DAYS = parseInt(process.env.MINI_HEALING_DAYS || '7', 10);
+
+if (MINI_HEALING_ENABLED) {
+  cron.schedule(MINI_HEALING_CRON, async () => {
+    try {
+      const sinceDate = new Date();
+      sinceDate.setDate(sinceDate.getDate() - MINI_HEALING_DAYS);
+      console.log(`Mini-healing: re-flagging submissions sent since ${sinceDate.toISOString()}`);
+      const subjects = await getSentSubmissionsSince(sinceDate.toISOString());
+      for (const subject of subjects) {
+        processSubjectsQueue.addJob(() => processSubject(subject));
+      }
+      console.log(`Mini-healing: enqueued ${subjects.length} submission(s)`);
+    } catch (e) {
+      console.error(`Error while running mini-healing: ${e.message ? e.message : e}`);
+      await sendErrorAlert({
+        message: `Mini-healing failed: ${e.message ? e.message : e}`
+      });
+    }
+  });
+}
 
 async function processSubject(subject) {
   try {

@@ -121,24 +121,21 @@ export async function getSubmissionInforForRemoteDataObject(remoteDataObject) {
   }
 }
 
+export async function getSentSubmissionsSince(sinceDate) {
+  const result = await query(`
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX meb: <http://rdf.myexperiment.org/ontologies/base/>
+    PREFIX melding: <http://lblod.data.gift/vocabularies/automatische-melding/>
+    PREFIX prov: <http://www.w3.org/ns/prov#>
 
-export async function flagResource(uri, flags) {
-  const preparedStatement = flags
-        .map(flag => `${sparqlEscapeUri(uri)} schema:publication ${sparqlEscapeUri(flag)}. `);
-
-  await update(`
-    PREFIX schema: <http://schema.org/>
-    INSERT {
+    SELECT DISTINCT ?formData WHERE {
       GRAPH ?g {
-        ${preparedStatement.join('\n')}
-      }
-    } WHERE {
-      GRAPH ?g {
-        ${sparqlEscapeUri(uri)} a ?something .
-      }
-
-      FILTER NOT EXISTS {
-        ${preparedStatement.join('\n')}
+        ?submission a meb:Submission;
+          prov:generated ?formData;
+          dct:created ?created.
+        ?formData a melding:FormData;
+          ext:formSubmissionStatus <http://lblod.data.gift/concepts/9bd8d86d-bb10-4456-a84e-91e9507c374c>.
       }
 
       FILTER(?g NOT IN (
@@ -146,6 +143,51 @@ export async function flagResource(uri, flags) {
         <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
         )
       )
+      FILTER(?created >= ${sparqlEscapeDateTime(sinceDate)})
+    }`);
+
+  return result.results.bindings.map(r => r.formData.value);
+}
+
+
+export async function flagResource(uri, flags) {
+  const blacklistFilter = `FILTER(?g NOT IN (
+        <http://redpencil.data.gift/id/deltas/producer/loket-submissions>,
+        <http://redpencil.data.gift/id/deltas/producer/loket-worship-submissions>
+        )
+      )`;
+  const insertStatements = flags
+        .map(f => `${sparqlEscapeUri(uri)} schema:publication ${sparqlEscapeUri(f)}.`)
+        .join('\n');
+
+  const askResult = await query(`
+    PREFIX schema: <http://schema.org/>
+    ASK WHERE {
+      ${flags.map(f => `GRAPH ?g { ${sparqlEscapeUri(uri)} schema:publication ${sparqlEscapeUri(f)}. }`).join(' ')}
+      ${blacklistFilter}
+    }`);
+
+  if (askResult.boolean) {
+    return;
+  }
+
+  await update(`
+    PREFIX schema: <http://schema.org/>
+    DELETE {
+      GRAPH ?g {
+        ${sparqlEscapeUri(uri)} schema:publication ?flag.
+      }
+    }
+    INSERT {
+      GRAPH ?g {
+        ${insertStatements}
+      }
+    } WHERE {
+      GRAPH ?g {
+        ${sparqlEscapeUri(uri)} a ?something .
+        OPTIONAL { ${sparqlEscapeUri(uri)} schema:publication ?flag. }
+      }
+      ${blacklistFilter}
     }`);
 }
 
